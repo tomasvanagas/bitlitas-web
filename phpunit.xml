@@ -1,27 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit backupGlobals="false"
-         backupStaticAttributes="false"
-         bootstrap="vendor/autoload.php"
+<!--
+  The regression suite of the Laravel app, run by runTests.sh inside the
+  test container (tests/README.md). Three suites, cheapest first: Platform
+  checks the image as shipped, Feature drives the app in-process with every
+  test inside a rolled-back transaction, and Server talks to the real nginx
+  and php-fpm over HTTP. The env values switch the in-process app to
+  Laravel's testing setup without overriding what run.sh exports; php-fpm
+  keeps the production environment run.sh gives it. verbose lists every
+  pinned known defect after a run.
+-->
+<phpunit bootstrap="tests/bootstrap.php"
          colors="true"
+         verbose="true"
+         cacheResult="false"
+         beStrictAboutOutputDuringTests="true"
          convertErrorsToExceptions="true"
          convertNoticesToExceptions="true"
          convertWarningsToExceptions="true"
-         processIsolation="false"
-         stopOnFailure="false">
+>
     <testsuites>
+        <testsuite name="Platform">
+            <directory suffix="Test.php">./tests/Platform</directory>
+        </testsuite>
         <testsuite name="Feature">
             <directory suffix="Test.php">./tests/Feature</directory>
         </testsuite>
-
-        <testsuite name="Unit">
-            <directory suffix="Test.php">./tests/Unit</directory>
+        <testsuite name="Server">
+            <directory suffix="Test.php">./tests/Server</directory>
         </testsuite>
     </testsuites>
-    <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
-            <directory suffix=".php">./app</directory>
-        </whitelist>
-    </filter>
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="CACHE_DRIVER" value="array"/>

@@ -1,0 +1,53 @@
+# -----------------------------------------------------------
+#  [*] Dockerfile.tests — regression test image
+#
+#  The production image, built first by runTests.sh under
+#  the bitlitas-web-check tag, plus what the suite needs
+#  around the app — nothing inside the app changes. MySQL
+#  5.7.44 comes from mysql:5.7, the image the bitlitas-mysql
+#  service runs. That image is Oracle Linux, built on glibc,
+#  while the app's is Alpine, built on musl, so the server
+#  comes with every library it links, glibc's own loader
+#  included, under /opt/mysql; run.sh starts it through that
+#  loader, as the mysql user added here, since mysqld will
+#  not run as root. PHPUnit goes to /opt/test-tools, never
+#  into the app's vendor, which stays exactly what ships.
+#  The suite itself is kept out of the production image by
+#  .dockerignore; Dockerfile.tests.dockerignore lets only
+#  phpunit.xml and tests/ into this build.
+#
+#  Used by:
+#    - runTests.sh (this folder)
+# -----------------------------------------------------------
+ARG BASE=bitlitas-web-check
+
+
+# MySQL 5.7.44: the server binary, the libraries ldd finds for
+# it (with glibc's loader) and its message and character set files
+FROM mysql:5.7 AS mysql
+RUN mkdir -p /opt/mysql/bin /opt/mysql/lib /opt/mysql/share &&                \
+    cp /usr/sbin/mysqld /opt/mysql/bin/ &&                                      \
+    ldd /usr/sbin/mysqld                                                        \
+        | awk '$2 == "=>" && $3 ~ /^\// { print $3 } $1 ~ /^\/lib64\/ld-linux/ { print $1 }' \
+        | xargs -I{} cp -L {} /opt/mysql/lib/ &&                                \
+    cp -r /usr/share/mysql /opt/mysql/share/mysql
+
+
+FROM ${BASE}
+
+COPY --from=mysql /opt/mysql /opt/mysql
+RUN adduser -S -D -H -s /sbin/nologin mysql
+
+
+# PHPUnit, at the versions tests/container/composer.lock pins
+COPY tests/container/composer.json tests/container/composer.lock /opt/test-tools/
+RUN COMPOSER_HOME=/tmp/composer composer install --working-dir=/opt/test-tools \
+        --no-interaction --no-progress --prefer-dist &&                         \
+    rm -rf /tmp/composer
+
+
+# The suite
+COPY phpunit.xml /var/www/html/phpunit.xml
+COPY tests /var/www/html/tests
+
+ENTRYPOINT ["sh", "/var/www/html/tests/container/run.sh"]

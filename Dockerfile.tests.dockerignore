@@ -1,0 +1,14 @@
+# -----------------------------------------------------------
+#  [*] Dockerfile.tests.dockerignore — the test image's context
+#
+#  Read instead of .dockerignore for Dockerfile.tests (BuildKit
+#  picks the file named after the Dockerfile). The app reaches
+#  the test image through the production image it is built on,
+#  so this build needs only the suite: phpunit.xml and tests/.
+#
+#  Used by:
+#    - runTests.sh (this folder) — the test image's build
+# -----------------------------------------------------------
+*
+!phpunit.xml
+!tests
