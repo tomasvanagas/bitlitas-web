@@ -57,9 +57,7 @@ class ProtectionTest extends ServerTestCase
     //   - PHPUnit — the Server suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /**
-     * @dataProvider privateFiles
-     */
+    /** @dataProvider privateFiles */
     public function testFilesOutsidePublicAreNeverServed(string $path, string $inside): void
     {
         $response = $this->http->get($path);
@@ -87,17 +85,17 @@ class ProtectionTest extends ServerTestCase
     public function privateFiles(): array
     {
         return [
-            'the environment'         => ['/.env', 'APP_KEY'],
-            'the environment, above'  => ['/../.env', 'APP_KEY'],
-            'the environment, coded'  => ['/%2e%2e/.env', 'APP_KEY'],
-            'composer.json'           => ['/composer.json', 'laravel/framework'],
-            'composer.lock'           => ['/composer.lock', 'content-hash'],
-            'artisan'                 => ['/artisan', 'LARAVEL_START'],
-            'server.php'              => ['/server.php', 'Laravel - A PHP Framework'],
-            'the configuration'       => ['/config/app.php', 'APP_DEBUG'],
-            'the node client'         => ['/app/Services/DaemonClient.php', 'json_rpc'],
-            'the log'                 => ['/storage/logs/laravel.log', 'WARNING'],
-            'the git metadata'        => ['/.git/config', '[core]'],
+            'the environment'        => ['/.env', 'APP_KEY'],
+            'the environment, above' => ['/../.env', 'APP_KEY'],
+            'the environment, coded' => ['/%2e%2e/.env', 'APP_KEY'],
+            'composer.json'          => ['/composer.json', 'laravel/framework'],
+            'composer.lock'          => ['/composer.lock', 'content-hash'],
+            'artisan'                => ['/artisan', 'LARAVEL_START'],
+            'server.php'             => ['/server.php', 'Laravel - A PHP Framework'],
+            'the configuration'      => ['/config/app.php', 'APP_DEBUG'],
+            'the node client'        => ['/app/Services/DaemonClient.php', 'json_rpc'],
+            'the log'                => ['/storage/logs/laravel.log', 'WARNING'],
+            'the git metadata'       => ['/.git/config', '[core]'],
         ];
     }
 

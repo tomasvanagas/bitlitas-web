@@ -1,18 +1,24 @@
 <?php
 
-return [
+// -----------------------------------------------------------
+//  [*] services — the outside services the app talks to
+//
+//  The one that matters is the Bitlitas full node: its RPC
+//  address and login, from BITLITAS_DAEMON_URL and
+//  BITLITAS_DAEMON_LOGIN, which docker-compose.yml sets for
+//  bitlitas-web (the node is reached through bitlitas-exit).
+//  The mail and payment entries are the scaffold's, unused;
+//  stripe's model, App\User, does not exist.
+//
+//  Used by:
+//    - AppServiceProvider — builds the DaemonClient from the
+//      bitlitas entry
+//    - Laravel's mailer — would read mailgun, ses and
+//      sparkpost
+// -----------------------------------------------------------
 
-    /*
-    |--------------------------------------------------------------------------
-    | Third Party Services
-    |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Stripe, Mailgun, SparkPost and others. This file provides a sane
-    | default location for this type of information, allowing packages
-    | to have a conventional place to find your various credentials.
-    |
-    */
+
+return [
 
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
@@ -20,7 +26,7 @@ return [
     ],
 
     'ses' => [
-        'key' => env('SES_KEY'),
+        'key'    => env('SES_KEY'),
         'secret' => env('SES_SECRET'),
         'region' => 'us-east-1',
     ],
@@ -30,8 +36,8 @@ return [
     ],
 
     'stripe' => [
-        'model' => App\User::class,
-        'key' => env('STRIPE_KEY'),
+        'model'  => App\User::class,
+        'key'    => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
     ],
 

@@ -1,18 +1,48 @@
 <?php
 
+// -----------------------------------------------------------
+//  [*] Kernel — the HTTP kernel and its middleware
+//
+//  Every web request passes through here: the global
+//  middleware first, then the group its route belongs to
+//  (web for routes/web.php, api for routes/api.php), then
+//  the aliases a route names. Laravel's scaffold, with one
+//  middleware of the web group switched off.
+//
+//  Used by:
+//    - bootstrap/app.php — bound as the HTTP kernel
+//    - public/index.php — handles every request through it
+// -----------------------------------------------------------
+
+
 namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
+
+
+
+
+
+
+
+// -----------------------------------------------------------
+// Kernel
+// -----------------------------------------------------------
+//
+// The three middleware lists Laravel's kernel reads; the
+// class adds no method of its own.
+//
+// Used by:
+//   - bootstrap/app.php, public/index.php
+// -----------------------------------------------------------
+
 class Kernel extends HttpKernel
 {
-    /**
-     * The application's global HTTP middleware stack.
-     *
-     * These middleware are run during every request to your application.
-     *
-     * @var array
-     */
+
+    // Run on every request: the maintenance switch, the post
+    // size limit, trimming and nulling of inputs, and the
+    // proxy handling of TrustProxies, which trusts no proxy
     protected $middleware = [
         \Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
@@ -21,17 +51,18 @@ class Kernel extends HttpKernel
         \App\Http\Middleware\TrustProxies::class,
     ];
 
-    /**
-     * The application's route middleware groups.
-     *
-     * @var array
-     */
+    // The groups RouteServiceProvider puts the route files
+    // in. web encrypts cookies, starts the session that every
+    // page view gets — a bitlitas_session and an XSRF-TOKEN
+    // cookie — and checks CSRF tokens on posts;
+    // AuthenticateSession, which signs a user out of other
+    // devices after a password change, is switched off. api
+    // allows 60 requests a minute and binds route parameters
     protected $middlewareGroups = [
         'web' => [
             \App\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
-            // \Illuminate\Session\Middleware\AuthenticateSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
@@ -43,19 +74,16 @@ class Kernel extends HttpKernel
         ],
     ];
 
-    /**
-     * The application's route middleware.
-     *
-     * These middleware may be assigned to groups or used individually.
-     *
-     * @var array
-     */
+    // The names a route can ask for: throttle on /blokai and
+    // in the api group, auth on api/user; guest is what the
+    // scaffold's account controllers would use, which do not
+    // exist, and auth.basic, bindings and can are not used
     protected $routeMiddleware = [
-        'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
+        'auth'       => \Illuminate\Auth\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
-        'bindings' => \Illuminate\Routing\Middleware\SubstituteBindings::class,
-        'can' => \Illuminate\Auth\Middleware\Authorize::class,
-        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
-        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        'bindings'   => \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        'can'        => \Illuminate\Auth\Middleware\Authorize::class,
+        'guest'      => \App\Http\Middleware\RedirectIfAuthenticated::class,
+        'throttle'   => \Illuminate\Routing\Middleware\ThrottleRequests::class,
     ];
 }

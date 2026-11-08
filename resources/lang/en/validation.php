@@ -1,17 +1,21 @@
 <?php
 
-return [
+// -----------------------------------------------------------
+//  [*] validation — the validator's error messages
+//
+//  The English message of every rule of Laravel's validator,
+//  with :attribute and the rule's own placeholders filled in
+//  when a message is made; the size rules have one message
+//  per kind of value. The app validates no input of its own
+//  — only the scaffold's account forms would, and they do
+//  not work.
+//
+//  Used by:
+//    - Laravel's validator — the validation.* keys
+// -----------------------------------------------------------
 
-    /*
-    |--------------------------------------------------------------------------
-    | Validation Language Lines
-    |--------------------------------------------------------------------------
-    |
-    | The following language lines contain the default error messages used by
-    | the validator class. Some of these rules have multiple versions such
-    | as the size rules. Feel free to tweak each of these messages here.
-    |
-    */
+
+return [
 
     'accepted'             => 'The :attribute must be accepted.',
     'active_url'           => 'The :attribute is not a valid URL.',
@@ -88,34 +92,15 @@ return [
     'uploaded'             => 'The :attribute failed to upload.',
     'url'                  => 'The :attribute format is invalid.',
 
-    /*
-    |--------------------------------------------------------------------------
-    | Custom Validation Language Lines
-    |--------------------------------------------------------------------------
-    |
-    | Here you may specify custom validation messages for attributes using the
-    | convention "attribute.rule" to name the lines. This makes it quick to
-    | specify a specific custom language line for a given attribute rule.
-    |
-    */
-
+    // Messages for one rule of one attribute, by
+    // attribute.rule; only the scaffold's placeholder is here
     'custom' => [
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Custom Validation Attributes
-    |--------------------------------------------------------------------------
-    |
-    | The following language lines are used to swap attribute place-holders
-    | with something more reader friendly such as E-Mail Address instead
-    | of "email". This simply helps us make messages a little cleaner.
-    |
-    */
-
+    // Readable names for attributes in the messages: none
     'attributes' => [],
 
 ];

@@ -1,48 +1,32 @@
 <?php
 
+// -----------------------------------------------------------
+//  [*] index.php — the front controller
+//
+//  Every request that names no file of public/ ends up here:
+//  the site's nginx hands such paths to this script. It loads
+//  the autoloader and the application, passes the request
+//  through the HTTP kernel, sends the response and lets the
+//  kernel finish its work after the response has gone.
+//
+//  Used by:
+//    - nginx — the site's server block in the image, for
+//      every path that is no file
+//    - server.php — the router of PHP's built-in server
+// -----------------------------------------------------------
 
+
+// When the request began, for Laravel's timing
 define('LARAVEL_START', microtime(true));
 
-/*
-|--------------------------------------------------------------------------
-| Register The Auto Loader
-|--------------------------------------------------------------------------
-|
-| Composer provides a convenient, automatically generated class loader for
-| our application. We just need to utilize it! We'll simply require it
-| into the script here so that we don't have to worry about manual
-| loading any of our classes later on. It feels great to relax.
-|
-*/
-
+// Composer's autoloader: the app's classes and vendor/
 require __DIR__.'/../vendor/autoload.php';
 
-/*
-|--------------------------------------------------------------------------
-| Turn On The Lights
-|--------------------------------------------------------------------------
-|
-| We need to illuminate PHP development, so let us turn on the lights.
-| This bootstraps the framework and gets it ready for use, then it
-| will load up this application so that we can run it and send
-| the responses back to the browser and delight our users.
-|
-*/
-
+// The application, built by bootstrap/app.php
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
-/*
-|--------------------------------------------------------------------------
-| Run The Application
-|--------------------------------------------------------------------------
-|
-| Once we have the application, we can handle the incoming request
-| through the kernel, and send the associated response back to
-| the client's browser allowing them to enjoy the creative
-| and wonderful application we have prepared for them.
-|
-*/
-
+// The request through the HTTP kernel, the response to the
+// browser, then the kernel's terminate hooks
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 
 $response = $kernel->handle(

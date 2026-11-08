@@ -1,5 +1,29 @@
 <?php
 
+// -----------------------------------------------------------
+//  [*] NetworkSync — copying the chain from the full node
+//
+//  Brings the blocks table and the three figures of the
+//  statistics table up to date with the full node — the job
+//  the 2018 code did through the block explorer's API. It
+//  stores the blocks the table lacks, oldest first, from the
+//  headers of get_block_headers_range, then recomputes the
+//  mined coins, the hash rate and the difficulty. A lock
+//  file lets one sync run at a time, whether php-fpm or the
+//  command line started it.
+//
+//  Blocks stored before a reorganization of the chain keep
+//  their old rewards and times: the table keeps no hashes to
+//  notice one. The two branches' rewards differ only by fees.
+//
+//  Used by:
+//    - BlocksController — GET /blokai, at most 5,000 blocks a
+//      visit
+//    - routes/console.php — bitlitas:sync, 10,000 a run until
+//      the top
+// -----------------------------------------------------------
+
+
 namespace App\Services;
 
 use App\Blocks;
@@ -7,39 +31,91 @@ use App\Statistic;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Copies block rewards from the full node into the `blocks` table and
- * refreshes the `statistics` the home page shows: mined (LIT so far),
- * hash_rate and difficulty. The 2018 code did the same through the
- * block explorer's API.
- */
+
+
+
+
+
+
+
+// -----------------------------------------------------------
+// NetworkSync
+// -----------------------------------------------------------
+//
+// Built by the container with the app's DaemonClient; holds
+// no state between runs — where to resume is read from the
+// table every time.
+//
+//   __construct          — the node client
+//   run                  — one sync under the lock
+//   sync                 — the sync itself
+//   replaceSeededGenesis — seedDB.sh's stand-in block 0 out
+//   store                — one batch of blocks in
+//   nextHeight           — where the table ends
+//   saveStatistics       — the home page's figures
+//   lock                 — the lock file
+//
+// Used by:
+//   - BlocksController, routes/console.php
+// -----------------------------------------------------------
+
 class NetworkSync
 {
-    /** Headers per RPC call (restricted v0.18 nodes refuse more than 1001) */
+
+    // Headers asked for per RPC call: the most a restricted
+    // v0.18 node gives in one, with room to spare
     const HEADERS_PER_CALL = 1000;
 
-    /** Atomic units in one LIT */
+    // Atomic units in one LIT
     const ATOMIC_UNITS = 1000000000000;
 
-    /** @var DaemonClient */
+    // The full node's client
     private $daemon;
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // __construct
+    // -----------------------------------------------------------
+    //
+    // A sync against the given node client.
+    //
+    // Used by:
+    //   - Laravel's container — for BlocksController::index and
+    //     the bitlitas:sync closure
+    // -----------------------------------------------------------
 
     public function __construct(DaemonClient $daemon)
     {
         $this->daemon = $daemon;
     }
 
-    /**
-     * Store the blocks the node has and the table doesn't (at most
-     * $maxBlocks of them, oldest first), then recompute the statistics.
-     *
-     * @param  int|null $maxBlocks  null: all the way to the node's top block
-     * @return array  status "ok" with the heights and the new statistics,
-     *                or status "busy" when another sync is running
-     *
-     * @throws DaemonException  the node is unreachable or answered nonsense
-     *                          (the batches stored before that are kept)
-     */
+
+
+
+
+
+    // -----------------------------------------------------------
+    // run
+    // -----------------------------------------------------------
+    //
+    // One sync of at most $maxBlocks blocks — null for all of
+    // them up to the node's top block — under the lock. Returns
+    // status "ok" with the heights and the new figures, or
+    // status "busy" without asking the node anything when
+    // another sync holds the lock. A DaemonException goes on to
+    // the caller; the batches stored before it are kept, and
+    // the lock is let go either way.
+    //
+    // Used by:
+    //   - BlocksController::index — 5,000 a visit
+    //   - the bitlitas:sync closure (routes/console.php) —
+    //     10,000 a run
+    // -----------------------------------------------------------
+
     public function run($maxBlocks = null)
     {
         $lock = $this->lock();
@@ -56,8 +132,30 @@ class NetworkSync
         }
     }
 
+
+
+
+
+
+    // -----------------------------------------------------------
+    // sync
+    // -----------------------------------------------------------
+    //
+    // The sync proper, run while the lock is held: the node's
+    // view first, so a node that fails changes nothing; then
+    // the stand-in block 0 swapped for the real one; then the
+    // missing blocks in batches of HEADERS_PER_CALL; then the
+    // figures. A node lower than the table gets nothing asked
+    // beyond get_info, and nothing stored is deleted.
+    //
+    // Used by:
+    //   - run (above)
+    // -----------------------------------------------------------
+
     private function sync($maxBlocks)
     {
+        // STEP 1: where the node and the table stand
+        // ==========================================
         $info = $this->daemon->getInfo();
         $top = (int) $info['height'] - 1;
 
@@ -66,27 +164,51 @@ class NetworkSync
         $from = $this->nextHeight();
         $to = $maxBlocks === null ? $top : min($top, $from + (int) $maxBlocks - 1);
 
+
+        // STEP 2: the missing blocks, a batch per RPC call
+        // ================================================
         for ($start = $from; $start <= $to; $start += self::HEADERS_PER_CALL) {
             $end = min($to, $start + self::HEADERS_PER_CALL - 1);
             $this->store($start, $end, $this->daemon->getBlockHeadersRange($start, $end));
         }
 
+
+        // STEP 3: the report, with the figures it stored
+        // ==============================================
         $lastStored = max($to, $from - 1);
 
         return array_merge([
-            'status' => 'ok',
-            'fetched' => max(0, $to - $from + 1),
+            'status'            => 'ok',
+            'fetched'           => max(0, $to - $from + 1),
             'last_stored_block' => $lastStored,
-            'node_top_block' => $top,
-            'remaining' => max(0, $top - $lastStored),
+            'node_top_block'    => $top,
+            'remaining'         => max(0, $top - $lastStored),
         ], $this->saveStatistics($info));
     }
 
-    /**
-     * seedDB.sh stores a stand-in block 0 without a reward so the home
-     * page has a "last block" before the first sync. Swap it for the
-     * real genesis block, whose reward counts toward the mined total.
-     */
+
+
+
+
+
+    // -----------------------------------------------------------
+    // replaceSeededGenesis
+    // -----------------------------------------------------------
+    //
+    // seedDB.sh stores a stand-in block 0 without a reward, so
+    // the home page has a last block before the first sync. A
+    // block 0 whose rewards are all 0 is that stand-in — the
+    // real one pays 17.592186044415 LIT — and gives way to the
+    // real block 0, whose reward counts toward the mined total;
+    // two stand-ins, as a server without strict mode keeps,
+    // both go. The real header is fetched first and the swap
+    // runs in a transaction, so a node failure leaves the
+    // stand-in in place.
+    //
+    // Used by:
+    //   - sync (above)
+    // -----------------------------------------------------------
+
     private function replaceSeededGenesis()
     {
         $rewards = Blocks::where('block_height', 0)->pluck('amount');
@@ -104,11 +226,26 @@ class NetworkSync
         });
     }
 
-    /**
-     * Insert blocks $start to $end in one statement, so a failed run
-     * never leaves part of a batch behind, after checking the node sent
-     * exactly those blocks, in order.
-     */
+
+
+
+
+
+    // -----------------------------------------------------------
+    // store
+    // -----------------------------------------------------------
+    //
+    // Inserts blocks $start to $end in one statement, so a
+    // failed run never leaves part of a batch behind, after
+    // checking that the node sent exactly those blocks in
+    // order: a header with a wrong or missing height, reward
+    // or time, or one too few or too many, is a
+    // DaemonException and nothing of the batch is stored.
+    //
+    // Used by:
+    //   - sync, replaceSeededGenesis (above)
+    // -----------------------------------------------------------
+
     private function store($start, $end, array $headers)
     {
         $now = Carbon::now();
@@ -123,10 +260,10 @@ class NetworkSync
 
             $rows[] = [
                 'block_height' => $height,
-                'amount' => $header['reward'],
-                'timestamp' => $header['timestamp'],
-                'created_at' => $now,
-                'updated_at' => $now,
+                'amount'       => $header['reward'],
+                'timestamp'    => $header['timestamp'],
+                'created_at'   => $now,
+                'updated_at'   => $now,
             ];
 
             $height++;
@@ -139,7 +276,22 @@ class NetworkSync
         Blocks::insert($rows);
     }
 
-    /** The first block the table doesn't have yet */
+
+
+
+
+
+    // -----------------------------------------------------------
+    // nextHeight
+    // -----------------------------------------------------------
+    //
+    // The first block the table does not have: one past the
+    // highest stored height, or 0 on an empty table.
+    //
+    // Used by:
+    //   - sync (above)
+    // -----------------------------------------------------------
+
     private function nextHeight()
     {
         $stored = Blocks::max('block_height');
@@ -147,9 +299,27 @@ class NetworkSync
         return $stored === null ? 0 : (int) $stored + 1;
     }
 
-    /**
-     * Recompute and store the home page's figures; returns them.
-     */
+
+
+
+
+
+    // -----------------------------------------------------------
+    // saveStatistics
+    // -----------------------------------------------------------
+    //
+    // Recomputes the home page's figures from the table and
+    // get_info, stores each as text — a new row, or the value
+    // of the existing one replaced — and returns them: the
+    // coins of every stored block in LIT to the hundredth, the
+    // difficulty over the block time as the 2018 explorer
+    // worked out the hash rate (0 when the node gives no block
+    // time), and the difficulty.
+    //
+    // Used by:
+    //   - sync (above)
+    // -----------------------------------------------------------
+
     private function saveStatistics(array $info)
     {
         $difficulty = (int) $info['difficulty'];
@@ -158,7 +328,7 @@ class NetworkSync
         $statistics = [
             'mined' => round(Blocks::sum('amount') / self::ATOMIC_UNITS, 2),
             // Hashes per second, worked out the way the 2018 explorer did
-            'hash_rate' => $target > 0 ? intdiv($difficulty, $target) : 0,
+            'hash_rate'  => $target > 0 ? intdiv($difficulty, $target) : 0,
             'difficulty' => $difficulty,
         ];
 
@@ -169,12 +339,27 @@ class NetworkSync
         return $statistics;
     }
 
-    /**
-     * An exclusive lock, so a cron run and a visitor can't store the
-     * same blocks twice; null while another sync holds it.
-     *
-     * @return resource|null
-     */
+
+
+
+
+
+    // -----------------------------------------------------------
+    // lock
+    // -----------------------------------------------------------
+    //
+    // An exclusive lock on storage/framework/bitlitas-sync.lock,
+    // taken without waiting, so a cron run and a visitor cannot
+    // store the same blocks twice; null while another sync
+    // holds it. The file is opened to every user, since php-fpm
+    // serves as www-data while bitlitas:sync may run as root,
+    // and whichever creates it first must not lock the other
+    // out.
+    //
+    // Used by:
+    //   - run (above)
+    // -----------------------------------------------------------
+
     private function lock()
     {
         $path = storage_path('framework/bitlitas-sync.lock');

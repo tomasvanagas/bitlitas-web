@@ -1,31 +1,29 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| Create The Application
-|--------------------------------------------------------------------------
-|
-| The first thing we will do is create a new Laravel application instance
-| which serves as the "glue" for all the components of Laravel, and is
-| the IoC container for the system binding all of the various parts.
-|
-*/
+// -----------------------------------------------------------
+//  [*] app — builds the application
+//
+//  Creates the Laravel application for the project folder
+//  and binds the app's two kernels and its exception handler
+//  in place of the framework's interfaces, then hands the
+//  application back. Running it — a request or a command —
+//  is the caller's part.
+//
+//  Used by:
+//    - public/index.php — every web request
+//    - artisan — every command
+//    - CreatesApplication (tests) — the app of every test
+// -----------------------------------------------------------
 
+
+// The container every part of Laravel is resolved from,
+// rooted at the project folder
 $app = new Illuminate\Foundation\Application(
     realpath(__DIR__.'/../')
 );
 
-/*
-|--------------------------------------------------------------------------
-| Bind Important Interfaces
-|--------------------------------------------------------------------------
-|
-| Next, we need to bind some important interfaces into the container so
-| we will be able to resolve them when needed. The kernels serve the
-| incoming requests to this application from both the web and CLI.
-|
-*/
-
+// The kernels that serve web requests and commands, and the
+// handler of their exceptions
 $app->singleton(
     Illuminate\Contracts\Http\Kernel::class,
     App\Http\Kernel::class
@@ -40,16 +38,5 @@ $app->singleton(
     Illuminate\Contracts\Debug\ExceptionHandler::class,
     App\Exceptions\Handler::class
 );
-
-/*
-|--------------------------------------------------------------------------
-| Return The Application
-|--------------------------------------------------------------------------
-|
-| This script returns the application instance. The instance is given to
-| the calling script so we can separate the building of the instances
-| from the actual running of the application and sending responses.
-|
-*/
 
 return $app;

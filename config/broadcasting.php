@@ -1,48 +1,42 @@
 <?php
 
+// -----------------------------------------------------------
+//  [*] broadcasting — where broadcast events would go
+//
+//  Laravel's scaffold settings for broadcasting events to
+//  websockets. The app broadcasts nothing: the default
+//  driver is null, which drops every event, and
+//  BroadcastServiceProvider is switched off in
+//  config/app.php.
+//
+//  Used by:
+//    - Laravel's configuration — read as
+//      config('broadcasting.…') by the broadcast manager
+// -----------------------------------------------------------
+
+
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Default Broadcaster
-    |--------------------------------------------------------------------------
-    |
-    | This option controls the default broadcaster that will be used by the
-    | framework when an event needs to be broadcast. You may set this to
-    | any of the connections defined in the "connections" array below.
-    |
-    | Supported: "pusher", "redis", "log", "null"
-    |
-    */
-
+    // The driver events go to: null, which drops them
     'default' => env('BROADCAST_DRIVER', 'null'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Broadcast Connections
-    |--------------------------------------------------------------------------
-    |
-    | Here you may define all of the broadcast connections that will be used
-    | to broadcast events to other systems or over websockets. Samples of
-    | each available type of connection are provided inside this array.
-    |
-    */
-
+    // The drivers Laravel offers, as the scaffold set them up;
+    // none is used
     'connections' => [
 
         'pusher' => [
-            'driver' => 'pusher',
-            'key' => env('PUSHER_APP_KEY'),
-            'secret' => env('PUSHER_APP_SECRET'),
-            'app_id' => env('PUSHER_APP_ID'),
+            'driver'  => 'pusher',
+            'key'     => env('PUSHER_APP_KEY'),
+            'secret'  => env('PUSHER_APP_SECRET'),
+            'app_id'  => env('PUSHER_APP_ID'),
             'options' => [
-                'cluster' => env('PUSHER_APP_CLUSTER'),
+                'cluster'   => env('PUSHER_APP_CLUSTER'),
                 'encrypted' => true,
             ],
         ],
 
         'redis' => [
-            'driver' => 'redis',
+            'driver'     => 'redis',
             'connection' => 'default',
         ],
 

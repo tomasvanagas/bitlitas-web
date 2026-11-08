@@ -1,31 +1,36 @@
 <?php
 
+// -----------------------------------------------------------
+//  [*] console — the app's artisan commands
+//
+//  The closure commands artisan offers besides the
+//  framework's own:
+//
+//    inspire       — prints an inspiring quote (scaffold)
+//    bitlitas:sync — syncs with the full node to its top block
+//
+//  Used by:
+//    - the console Kernel's commands (app/Console) — loads it
+//      when artisan starts
+// -----------------------------------------------------------
+
+
 use App\Services\DaemonException;
 use App\Services\NetworkSync;
 use Illuminate\Foundation\Inspiring;
 
-/*
-|--------------------------------------------------------------------------
-| Console Routes
-|--------------------------------------------------------------------------
-|
-| This file is where you may define all of your Closure based console
-| commands. Each Closure is bound to a command instance allowing a
-| simple approach to interacting with each command's IO methods.
-|
-*/
-
+// The scaffold's sample command
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->describe('Display an inspiring quote');
 
-/*
- * Bring the blocks and statistics up to date with the full node
- * (BITLITAS_DAEMON_URL), all the way to its top block. Run it as the
- * web server's user, so any file it creates stays writable for the site:
- *
- *   docker-compose exec -u www-data bitlitas-web php artisan bitlitas:sync
- */
+// Brings the blocks and statistics up to date with the full
+// node named by BITLITAS_DAEMON_URL, all the way to its top
+// block, in syncs of 10,000 blocks: one line per sync saying
+// where it got to, then the figures. Exits 0 at the top, and
+// 1 with the reason when the node failed or another sync
+// holds the lock. Run it as www-data, the web server's user,
+// so any file it creates stays writable for the site
 Artisan::command('bitlitas:sync', function (NetworkSync $sync) {
     do {
         try {

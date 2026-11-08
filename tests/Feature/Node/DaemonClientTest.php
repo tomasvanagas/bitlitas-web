@@ -309,9 +309,7 @@ class DaemonClientTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /**
-     * @dataProvider notJsonRpc
-     */
+    /** @dataProvider notJsonRpc */
     public function testAnswerThatIsNoJsonRpcIsRefused(string $body): void
     {
         FakeNodeServer::configure(['raw_body' => $body]);
@@ -337,10 +335,10 @@ class DaemonClientTest extends FeatureTestCase
     public function notJsonRpc(): array
     {
         return [
-            'a web page'        => ['<html><body>It works!</body></html>'],
-            'nothing'           => [''],
-            'no result'         => ['{"id":"0","jsonrpc":"2.0"}'],
-            'a result of text'  => ['{"id":"0","jsonrpc":"2.0","result":"OK"}'],
+            'a web page'       => ['<html><body>It works!</body></html>'],
+            'nothing'          => [''],
+            'no result'        => ['{"id":"0","jsonrpc":"2.0"}'],
+            'a result of text' => ['{"id":"0","jsonrpc":"2.0","result":"OK"}'],
         ];
     }
 
@@ -410,9 +408,7 @@ class DaemonClientTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /**
-     * @dataProvider infoFigures
-     */
+    /** @dataProvider infoFigures */
     public function testInfoWithoutAFigureIsRefused(string $figure): void
     {
         FakeNodeServer::configure(['omit_info' => [$figure]]);

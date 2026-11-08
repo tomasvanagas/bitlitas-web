@@ -1,35 +1,35 @@
 #!/usr/bin/env php
 <?php
 
+// -----------------------------------------------------------
+//  [*] artisan — Laravel's command line
+//
+//  Runs the command named on the command line through the
+//  console kernel — the framework's own, migrate among them,
+//  and the app's bitlitas:sync — and exits with its status.
+//  The line above the open tag lets the file run as a
+//  program of its own.
+//
+//  Used by:
+//    - seedDB.sh — the migrations of a fresh database
+//    - the Dockerfile — the key generated when the image is
+//      built
+//    - the operator — bitlitas:sync, best as www-data
+//    - tests/container/run.sh — the test database's
+//      migrations
+// -----------------------------------------------------------
+
+
+// When the command began, for Laravel's timing
 define('LARAVEL_START', microtime(true));
 
-/*
-|--------------------------------------------------------------------------
-| Register The Auto Loader
-|--------------------------------------------------------------------------
-|
-| Composer provides a convenient, automatically generated class loader
-| for our application. We just need to utilize it! We'll require it
-| into the script here so that we do not have to worry about the
-| loading of any our classes "manually". Feels great to relax.
-|
-*/
-
+// Composer's autoloader, then the application
 require __DIR__.'/vendor/autoload.php';
 
 $app = require_once __DIR__.'/bootstrap/app.php';
 
-/*
-|--------------------------------------------------------------------------
-| Run The Artisan Application
-|--------------------------------------------------------------------------
-|
-| When we run the console application, the current CLI command will be
-| executed in this console and the response sent back to a terminal
-| or another output device for the developers. Here goes nothing!
-|
-*/
-
+// The command through the console kernel, with the
+// terminal's arguments and output
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 
 $status = $kernel->handle(
@@ -37,17 +37,8 @@ $status = $kernel->handle(
     new Symfony\Component\Console\Output\ConsoleOutput
 );
 
-/*
-|--------------------------------------------------------------------------
-| Shutdown The Application
-|--------------------------------------------------------------------------
-|
-| Once Artisan has finished running, we will fire off the shutdown events
-| so that any final work may be done by the application before we shut
-| down the process. This is the last thing to happen to the request.
-|
-*/
-
+// The kernel's shutdown hooks, then the command's status as
+// the process's exit code
 $kernel->terminate($input, $status);
 
 exit($status);

@@ -30,25 +30,16 @@ require __DIR__ . '/../Support/NodeEmulator.php';
 
 use Tests\Support\NodeEmulator;
 
-
-
-
-
-
-
-
-// -----------------------------------------------------------
-// The request
-// -----------------------------------------------------------
-//
-// The state as the tests left it, the request as it came
-// in, and its line in the request log.
-// -----------------------------------------------------------
-
+// Where the tests leave the node's state and read its request
+// log, and the realm of the digest challenge
 const STATE = '/tmp/fake-node/state.json';
 const REQUESTS = '/tmp/fake-node/requests.jsonl';
 const REALM = 'bitlitas-rpc';
 
+
+// STEP 1: the state as the tests left it, the request as it
+// came in, and its line in the request log
+// =========================================================
 $state = json_decode((string) @file_get_contents(STATE), true) ?: [];
 $body = (string) file_get_contents('php://input');
 $authorization = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION']
@@ -64,34 +55,29 @@ file_put_contents(REQUESTS, json_encode([
 ]) . "\n", FILE_APPEND);
 
 
-
-
-
-
-
-
-// -----------------------------------------------------------
-// The answer
-// -----------------------------------------------------------
-//
-// Anything but POST /json_rpc is not found, as on the real
-// node. A login in the state turns the digest check on:
-// the nonce is fixed, which is all a client needs to answer
-// the challenge. Then the emulator answers, and its state
-// is stored for the next request.
-// -----------------------------------------------------------
-
+// STEP 2: anything but POST /json_rpc is not found, as on
+// the real node
+// =======================================================
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) !== '/json_rpc') {
     http_response_code(404);
     return true;
 }
 
+
+// STEP 3: with a login in the state, the request must answer
+// the digest challenge first; the nonce is fixed, which is
+// all a client needs to answer it
+// ==========================================================
 if (!empty($state['login']) && !digestAnswered($authorization, $state['login'])) {
     http_response_code(401);
     header('WWW-Authenticate: Digest realm="' . REALM . '", qop="auth", algorithm=MD5, nonce="' . md5(REALM . $state['login']) . '"');
     return true;
 }
 
+
+// STEP 4: the emulator's answer, and its state stored for
+// the next request
+// =======================================================
 $node = new NodeEmulator($state);
 list($status, $answer) = $node->answer($body);
 file_put_contents(STATE, json_encode($node->state));

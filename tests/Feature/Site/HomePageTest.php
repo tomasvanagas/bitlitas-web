@@ -97,9 +97,7 @@ class HomePageTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /**
-     * @dataProvider minedFigures
-     */
+    /** @dataProvider minedFigures */
     public function testMinedCoinsAreShortened(string $mined, string $shown): void
     {
         $this->pageWith(['mined' => $mined])->assertSee("Iš 18.3 mln. jau iškasta $shown</p>");
@@ -151,9 +149,7 @@ class HomePageTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /**
-     * @dataProvider minedShares
-     */
+    /** @dataProvider minedShares */
     public function testMinedShareIsATenthOfAPercent(string $mined, string $share): void
     {
         $this->pageWith(['mined' => $mined])->assertSee("<div class=\"progress-value\">$share %</div>");
@@ -201,9 +197,7 @@ class HomePageTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /**
-     * @dataProvider hashRates
-     */
+    /** @dataProvider hashRates */
     public function testHashRateIsShortenedToKilohashes(string $hashRate, string $shown): void
     {
         $this->pageWith(['hash_rate' => $hashRate])->assertSee("Tinklo greitis <span class=\"label label-success\">$shown</span>");

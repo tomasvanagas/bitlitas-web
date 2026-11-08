@@ -483,9 +483,7 @@ class NetworkSyncTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /**
-     * @dataProvider damage
-     */
+    /** @dataProvider damage */
     public function testDamagedHeadersStoreNothingOfTheirBatch(string $mode): void
     {
         $this->fakeDaemon(['height' => 2500, 'corrupt' => $mode, 'corrupt_call' => 2]);
@@ -514,13 +512,13 @@ class NetworkSyncTest extends FeatureTestCase
     public function damage(): array
     {
         return [
-            'a gap'           => ['gap'],
-            'a wrong height'  => ['wrong-height'],
-            'one too few'     => ['too-few'],
-            'one too many'    => ['too-many'],
-            'no reward'       => ['no-reward'],
-            'no time'         => ['no-timestamp'],
-            'no height'       => ['no-height'],
+            'a gap'          => ['gap'],
+            'a wrong height' => ['wrong-height'],
+            'one too few'    => ['too-few'],
+            'one too many'   => ['too-many'],
+            'no reward'      => ['no-reward'],
+            'no time'        => ['no-timestamp'],
+            'no height'      => ['no-height'],
         ];
     }
 

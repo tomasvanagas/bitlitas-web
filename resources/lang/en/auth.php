@@ -1,19 +1,21 @@
 <?php
 
+// -----------------------------------------------------------
+//  [*] auth — the sign-in messages
+//
+//  The English messages of Laravel's sign-in: wrong
+//  credentials, and too many attempts. The app has no
+//  sign-in that works, so nothing shows them.
+//
+//  Used by:
+//    - Laravel's translator — the auth.* keys of the
+//      scaffold's login controller, which the app does not have
+// -----------------------------------------------------------
+
+
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Authentication Language Lines
-    |--------------------------------------------------------------------------
-    |
-    | The following language lines are used during authentication for various
-    | messages that we need to display to the user. You are free to modify
-    | these language lines according to your application's requirements.
-    |
-    */
-
-    'failed' => 'These credentials do not match our records.',
+    'failed'   => 'These credentials do not match our records.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
 
 ];

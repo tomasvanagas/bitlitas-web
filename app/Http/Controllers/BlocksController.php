@@ -1,26 +1,75 @@
 <?php
 
+// -----------------------------------------------------------
+//  [*] BlocksController — the sync's web door
+//
+//  GET /blokai runs one sync with the full node and answers
+//  with what it did, as JSON. The route is public and
+//  throttled to ten visits a minute, since every visit
+//  queries the node; the command line's bitlitas:sync does
+//  the same work without a limit.
+//
+//  Used by:
+//    - routes/web.php — GET /blokai
+// -----------------------------------------------------------
+
+
 namespace App\Http\Controllers;
 
 use App\Services\DaemonException;
 use App\Services\NetworkSync;
 use Illuminate\Support\Facades\Log;
 
+
+
+
+
+
+
+
+// -----------------------------------------------------------
+// BlocksController
+// -----------------------------------------------------------
+//
+// One action; the throttle and the web group sit in front
+// of it in routes/web.php.
+//
+//   index — one sync, reported as JSON
+//
+// Used by:
+//   - routes/web.php
+// -----------------------------------------------------------
+
 class BlocksController extends Controller
 {
-    /**
-     * Blocks stored per visit, which keeps one request well inside
-     * PHP's time limit; `php artisan bitlitas:sync` has no limit.
-     */
+
+    // Blocks stored per visit, which keeps one request well
+    // inside PHP's time limit; bitlitas:sync has no limit
     const BLOCKS_PER_REQUEST = 5000;
 
-    /**
-     * GET /blokai: bring the blocks and statistics up to date with the
-     * full node and report how far that got, as JSON.
-     *
-     * @param  NetworkSync $sync
-     * @return \Illuminate\Http\JsonResponse
-     */
+
+
+
+
+
+    // -----------------------------------------------------------
+    // index
+    // -----------------------------------------------------------
+    //
+    // GET /blokai
+    //
+    // Runs NetworkSync for at most BLOCKS_PER_REQUEST blocks and
+    // answers with its report: 200 when it ran, 409 while
+    // another sync holds the lock, 503 when the node failed.
+    // The 503 names the node's error only in debug mode, since
+    // the message holds internal addresses; the error goes to
+    // Laravel's log as a warning either way.
+    //
+    // Used by:
+    //   - an operator or a cron calling the URL — no cron calls
+    //     it at the moment
+    // -----------------------------------------------------------
+
     public function index(NetworkSync $sync)
     {
         try {

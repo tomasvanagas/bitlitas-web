@@ -134,9 +134,7 @@ class FrontControllerTest extends ServerTestCase
     //   - PHPUnit — the Server suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /**
-     * @dataProvider publicFiles
-     */
+    /** @dataProvider publicFiles */
     public function testFilesOfPublicComeFromNginx(string $path, string $type): void
     {
         $response = $this->http->head($path);
@@ -166,17 +164,17 @@ class FrontControllerTest extends ServerTestCase
     public function publicFiles(): array
     {
         return [
-            'the stylesheet'      => ['/css/main.css', 'text/css'],
-            'the script'          => ['/js/main.js', 'application/javascript'],
-            'the logo'            => ['/img/logo.png', 'image/png'],
-            'the background'      => ['/img/bg-default.jpg', 'image/jpeg'],
-            'the tab icon'        => ['/img/favicon/icon.ico', 'image/x-icon'],
-            'the root icon'       => ['/favicon.ico', 'image/x-icon'],
-            'the film, webm'      => ['/video/bitlitas.webm', 'video/webm'],
-            'the film, mp4'       => ['/video/bitlitas.mp4', 'video/mp4'],
-            'the Linux wallet'    => ['/downloads/v1/bitlitas.tar.gz', 'application/octet-stream'],
-            'the Windows wallet'  => ['/downloads/v1/bitlitas.exe', 'application/octet-stream'],
-            'robots.txt'          => ['/robots.txt', 'text/plain'],
+            'the stylesheet'     => ['/css/main.css', 'text/css'],
+            'the script'         => ['/js/main.js', 'application/javascript'],
+            'the logo'           => ['/img/logo.png', 'image/png'],
+            'the background'     => ['/img/bg-default.jpg', 'image/jpeg'],
+            'the tab icon'       => ['/img/favicon/icon.ico', 'image/x-icon'],
+            'the root icon'      => ['/favicon.ico', 'image/x-icon'],
+            'the film, webm'     => ['/video/bitlitas.webm', 'video/webm'],
+            'the film, mp4'      => ['/video/bitlitas.mp4', 'video/mp4'],
+            'the Linux wallet'   => ['/downloads/v1/bitlitas.tar.gz', 'application/octet-stream'],
+            'the Windows wallet' => ['/downloads/v1/bitlitas.exe', 'application/octet-stream'],
+            'robots.txt'         => ['/robots.txt', 'text/plain'],
         ];
     }
 

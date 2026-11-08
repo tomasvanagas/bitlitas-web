@@ -51,18 +51,18 @@ class RouteInventoryTest extends FeatureTestCase
 
     // Every route, with its action and middleware
     private const ROUTES = [
-        'GET /'                         => ['App\Http\Controllers\HomeController@index', ['web']],
-        'GET blokai'                    => ['App\Http\Controllers\BlocksController@index', ['web', 'throttle:10,1']],
-        'GET login'                     => ['App\Http\Controllers\Auth\LoginController@showLoginForm', ['web']],
-        'POST login'                    => ['App\Http\Controllers\Auth\LoginController@login', ['web']],
-        'POST logout'                   => ['App\Http\Controllers\Auth\LoginController@logout', ['web']],
-        'GET register'                  => ['App\Http\Controllers\Auth\RegisterController@showRegistrationForm', ['web']],
-        'POST register'                 => ['App\Http\Controllers\Auth\RegisterController@register', ['web']],
-        'GET password/reset'            => ['App\Http\Controllers\Auth\ForgotPasswordController@showLinkRequestForm', ['web']],
-        'POST password/email'           => ['App\Http\Controllers\Auth\ForgotPasswordController@sendResetLinkEmail', ['web']],
-        'GET password/reset/{token}'    => ['App\Http\Controllers\Auth\ResetPasswordController@showResetForm', ['web']],
-        'POST password/reset'           => ['App\Http\Controllers\Auth\ResetPasswordController@reset', ['web']],
-        'GET api/user'                  => ['Closure', ['api', 'auth:api']],
+        'GET /'                      => ['App\Http\Controllers\HomeController@index', ['web']],
+        'GET blokai'                 => ['App\Http\Controllers\BlocksController@index', ['web', 'throttle:10,1']],
+        'GET login'                  => ['App\Http\Controllers\Auth\LoginController@showLoginForm', ['web']],
+        'POST login'                 => ['App\Http\Controllers\Auth\LoginController@login', ['web']],
+        'POST logout'                => ['App\Http\Controllers\Auth\LoginController@logout', ['web']],
+        'GET register'               => ['App\Http\Controllers\Auth\RegisterController@showRegistrationForm', ['web']],
+        'POST register'              => ['App\Http\Controllers\Auth\RegisterController@register', ['web']],
+        'GET password/reset'         => ['App\Http\Controllers\Auth\ForgotPasswordController@showLinkRequestForm', ['web']],
+        'POST password/email'        => ['App\Http\Controllers\Auth\ForgotPasswordController@sendResetLinkEmail', ['web']],
+        'GET password/reset/{token}' => ['App\Http\Controllers\Auth\ResetPasswordController@showResetForm', ['web']],
+        'POST password/reset'        => ['App\Http\Controllers\Auth\ResetPasswordController@reset', ['web']],
+        'GET api/user'               => ['Closure', ['api', 'auth:api']],
     ];
 
 
@@ -132,7 +132,7 @@ class RouteInventoryTest extends FeatureTestCase
     {
         $routes = [];
         foreach (Router::getRoutes()->getRoutes() as $route) {
-            /** @var Route $route */
+            // Each one an Illuminate\Routing\Route (the import above)
             foreach (array_diff($route->methods(), ['HEAD']) as $method) {
                 $routes["$method {$route->uri()}"] = [$route->getActionName(), $route->middleware()];
             }

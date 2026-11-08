@@ -1,33 +1,27 @@
 <?php
 
+// -----------------------------------------------------------
+//  [*] view — where the Blade templates live
+//
+//  The templates are read from resources/views — the site's
+//  one page, welcome.blade.php, with its layout and footer —
+//  and compiled to PHP under storage/framework/views the
+//  first time each one renders.
+//
+//  Used by:
+//    - Laravel's configuration — read as config('view.…') by
+//      the view factory and the Blade compiler
+// -----------------------------------------------------------
+
+
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | View Storage Paths
-    |--------------------------------------------------------------------------
-    |
-    | Most templating systems load templates from disk. Here you may specify
-    | an array of paths that should be checked for your views. Of course
-    | the usual Laravel view path has already been registered for you.
-    |
-    */
-
+    // The folders templates are looked up in
     'paths' => [
         resource_path('views'),
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Compiled View Path
-    |--------------------------------------------------------------------------
-    |
-    | This option determines where all the compiled Blade templates will be
-    | stored for your application. Typically, this is within the storage
-    | directory. However, as usual, you are free to change this value.
-    |
-    */
-
+    // Where the compiled templates go
     'compiled' => realpath(storage_path('framework/views')),
 
 ];
