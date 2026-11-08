@@ -14,7 +14,10 @@
 //  loads nothing from another server but the one embed that
 //  cannot be copied, Facebook's page widget. The downloads
 //  are the 2018 v1.0.2 wallets: a tarball holding bitlitasd
-//  and the GUI wallet, and a Windows executable.
+//  and the GUI wallet, and a Windows executable. The
+//  background film is muted, so a browser lets it start;
+//  every picture has an alt; and the root favicon.ico is the
+//  page's icon.
 //
 //  Used by:
 //    - PHPUnit — the Platform suite (runTests.sh)
@@ -66,8 +69,7 @@ class TemplatesTest extends TestCase
         'img/phone.png',
         'img/programoje.png',
         'img/windows.png',
-        'js/lib/bootstrap-3.3.6.min.js',
-        'js/lib/jquery-1.11.1.min.js',
+        'js/lib/jquery-3.7.1.min.js',
         'js/lib/modernizr-2.8.3.min.js',
         'js/lib/respond-1.4.2.min.js',
         'js/main.js',
@@ -270,6 +272,80 @@ class TemplatesTest extends TestCase
         $this->assertContains('bitlitasd', $names);
         $this->assertContains('bitlitas-wallet-gui', $names);
         $this->assertSame('MZ', file_get_contents(public_path('downloads/v1/bitlitas.exe'), false, null, 0, 2));
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testBackgroundFilmIsMutedSoItPlays
+    // -----------------------------------------------------------
+    //
+    // Both files of the background film carry a sound track,
+    // and browsers refuse to start a film with sound on their
+    // own: the video tag is muted, and plays inline on a
+    // phone, so the film starts when main.js asks it to.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testBackgroundFilmIsMutedSoItPlays(): void
+    {
+        preg_match('/<video\b[^>]*>/', file_get_contents(resource_path('views/welcome.blade.php')), $tag);
+
+        $this->assertSame('<video loop muted playsinline id=bg-video class=fullscreen-video>', $tag[0]);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testEveryPictureHasAnAlt
+    // -----------------------------------------------------------
+    //
+    // Every img of the page carries an alt: the words a screen
+    // reader says for it, or an empty one for a picture beside
+    // words that already say it.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testEveryPictureHasAnAlt(): void
+    {
+        foreach ($this->views() as $name => $path) {
+            preg_match_all('/<img\b[^>]*>/', file_get_contents($path), $pictures);
+            foreach ($pictures[0] as $picture) {
+                $this->assertMatchesRegularExpression('/\salt(?:[\s>]|=)/', $picture, "$name: $picture has no alt");
+            }
+        }
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testRootIconIsTheSitesIcon
+    // -----------------------------------------------------------
+    //
+    // favicon.ico at the root, which a browser asks for on any
+    // answer that names no icon of its own — an error page,
+    // the JSON of /blokai — is the icon the page names.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testRootIconIsTheSitesIcon(): void
+    {
+        $this->assertFileEquals(public_path('img/favicon/icon.ico'), public_path('favicon.ico'));
     }
 
 

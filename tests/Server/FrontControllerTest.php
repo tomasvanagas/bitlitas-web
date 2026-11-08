@@ -131,9 +131,7 @@ class FrontControllerTest extends ServerTestCase
     //
     // Each file of public/ is answered by Apache with its type
     // and its whole size, and sets no cookie — Laravel never
-    // saw the request. A HEAD of the scaffold's empty
-    // favicon.ico gets no Content-Length at all, which reads
-    // as the size it is, 0.
+    // saw the request.
     //
     // Used by:
     //   - PHPUnit — the Server suite (runTests.sh)
@@ -173,7 +171,7 @@ class FrontControllerTest extends ServerTestCase
             'the font\'s faces'  => ['/css/fonts.css', 'text/css'],
             'the font'           => ['/fonts/open-sans/open-sans-latin.woff2', 'font/woff2'],
             'the script'         => ['/js/main.js', 'text/javascript'],
-            'jQuery'             => ['/js/lib/jquery-1.11.1.min.js', 'text/javascript'],
+            'jQuery'             => ['/js/lib/jquery-3.7.1.min.js', 'text/javascript'],
             'the logo'           => ['/img/logo.png', 'image/png'],
             'the background'     => ['/img/bg-default.jpg', 'image/jpeg'],
             'the tab icon'       => ['/img/favicon/icon.ico', 'image/vnd.microsoft.icon'],

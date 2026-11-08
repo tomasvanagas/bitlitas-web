@@ -5,7 +5,7 @@
 
         <div class="hero-overlay visible-lg"></div>
 
-        <video loop id=bg-video class=fullscreen-video>
+        <video loop muted playsinline id=bg-video class=fullscreen-video>
             <source src="video/bitlitas.webm" type="video/webm">
             <source src="video/bitlitas.mp4" type="video/mp4">
         </video>
@@ -26,10 +26,10 @@
                     </div>
                     <div class="mb-15">
                         <a class="btn btn-prepend" href="downloads/v1/bitlitas.tar.gz">
-                            <img src="img/linux.png"> Linux versija
+                            <img src="img/linux.png" alt=""> Linux versija
                         </a>
                         <a class="btn btn-prepend" href="downloads/v1/bitlitas.exe">
-                            <img src="img/windows.png"> Windows versija
+                            <img src="img/windows.png" alt=""> Windows versija
                         </a>
                     </div>
                     <div>
@@ -171,7 +171,7 @@
 
                     <p class="xs-mw" style="margin-top: 50px;">
                         <a target="_blank" href="https://play.google.com/store/apps/details?id=com.litas.ltlwallet">
-                            <img class="img-responsive" style="max-height: 100px;" src="/img/google-play-badge.png">
+                            <img class="img-responsive" style="max-height: 100px;" src="/img/google-play-badge.png" alt="Google Play">
                         </a>
                     </p>
                 </div>

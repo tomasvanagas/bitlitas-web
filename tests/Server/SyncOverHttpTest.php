@@ -10,9 +10,10 @@
 //  what the next visit to the home page shows. A node error
 //  is a 503 in plain words, with the reason in laravel.log;
 //  the lock is shared with every other process, a sync run
-//  from the command line included; and the throttle counts
+//  from the command line included; the throttle counts
 //  each visitor apart, by the address X-Forwarded-For
-//  names.
+//  names; and robots.txt keeps search engines' crawlers
+//  off the route, so no crawl sets a sync off.
 //
 //  Used by:
 //    - PHPUnit — the Server suite (runTests.sh)
@@ -73,6 +74,31 @@ class SyncOverHttpTest extends ServerTestCase
         $methods = array_column(array_column(FakeNodeServer::requests(), 'body'), 'method');
         $this->assertSame(['get_info', 'get_block_headers_range', 'get_block_headers_range', 'get_block_headers_range'], $methods);
         $this->assertSame(['/json_rpc'], array_values(array_unique(array_column(FakeNodeServer::requests(), 'path'))));
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testCrawlersAreKeptOffTheSync
+    // -----------------------------------------------------------
+    //
+    // robots.txt asks every crawler to leave /blokai alone: a
+    // visit there runs a sync against the node, which a
+    // search engine has no business setting off.
+    //
+    // Used by:
+    //   - PHPUnit — the Server suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testCrawlersAreKeptOffTheSync(): void
+    {
+        $response = $this->http->get('/robots.txt');
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(['User-agent: *', 'Disallow: /blokai'], array_values(array_filter(array_map('trim', explode("\n", $response->body)), 'strlen')));
     }
 
 

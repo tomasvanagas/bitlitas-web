@@ -210,14 +210,6 @@ $(function() {
 	dateText = d.getFullYear();
 	$('#date-year').text(dateText);
 	
-	// LAUNCH VIDEO VIA DIRECT URL
-	var getHash = location.hash;
-	
-	if ( getHash === "#video" || getHash === "video" ) {
-		var videoID = $launchButton.data('videomodal');
-		launchVideo(videoID);
-	}
-
 	// TABBED CONTENT
 
 	$tabList = $('.inline-tabs');

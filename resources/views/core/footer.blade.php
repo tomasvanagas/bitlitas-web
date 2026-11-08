@@ -9,8 +9,7 @@
 </div>
 
 
-<script src="js/lib/jquery-1.11.1.min.js"></script>
-<script src="js/lib/bootstrap-3.3.6.min.js"></script>
+<script src="js/lib/jquery-3.7.1.min.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

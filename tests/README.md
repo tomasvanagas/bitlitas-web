@@ -175,6 +175,20 @@ repository, harmless today, or not testable here:
   2023; the test container runs the same server, so the suite cannot show
   a difference. Moving it to MySQL 8.4 is a change to the stack and its
   data, outside this repository.
+- **Three of the page's links lead nowhere.** The footer's pool and wiki
+  links (`pool.bitlitas.lt`, `wiki.bitlitas.lt`) answer HTTPS with a TLS
+  error and plain HTTP with the proxy's catch-all page, and the Google Play
+  page of the Android wallet (`com.litas.ltlwallet`) is a 404. Whether to
+  drop them or point them elsewhere is a decision about the page, not a
+  fix; the suite stays offline, so it cannot check them.
+- **The donation details may not reach the project.** The PayPal link names
+  `spliffymap`, the 2018 developer's handle, and the BTC and ETH addresses
+  are from the same page; who holds them today is not known here.
+- **"Mined" counts the fees.** The node's block reward is the new coins and
+  the block's fees together, so the sum `NetworkSync` stores overstates
+  the coins mined by every fee ever paid — next to nothing on this chain.
+  Telling the two apart needs more from the node than the block headers
+  the sync reads.
 - **Glyphicons point at missing fonts.** `grid.css` declares the Glyphicons
   font from `../fonts/`, which is not shipped. No element uses a glyphicon,
   so no browser asks for it.
