@@ -9,6 +9,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install PHP extensions; PDO and mbstring come with the image
 RUN docker-php-ext-install pdo_mysql gd
 
+# php.ini is PHP's production file: errors go to Apache's error log, never
+# into a page. It leaves expose_php on, which would put X-Powered-By with
+# the exact version on every response, so that goes off
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && sed -i 's/^expose_php = On$/expose_php = Off/' "$PHP_INI_DIR/php.ini"
+
 # Session upload progress off: PHP's own mitigation of CVE-2026-115560,
 # which no release fixes yet (8.4.27 does not). The site uploads nothing,
 # so nothing depends on the feature
@@ -33,12 +39,13 @@ COPY . .
 # discovery, which writes the package manifest to bootstrap/cache
 RUN mkdir -p bootstrap/cache && composer install --no-dev --optimize-autoloader --no-interaction
 
-# Set up Laravel. key:generate boots the app, which writes the services
-# manifest to bootstrap/cache: the read-only container could not write it
+# Set up Laravel. The .env holds no key: APP_KEY comes from the stack, so
+# the image carries no secret. package:discover boots the app with the
+# packages composer found, which writes the services manifest to
+# bootstrap/cache: the read-only container could not write it
 RUN cp .env.example .env 2>/dev/null || ( \
         echo "APP_NAME=Bitlitas" > .env && \
         echo "APP_ENV=production" >> .env && \
-        echo "APP_KEY=" >> .env && \
         echo "APP_URL=https://bitlitas.lt" >> .env && \
         echo "DB_CONNECTION=mysql" >> .env && \
         echo "DB_HOST=\${DB_HOST}" >> .env && \
@@ -47,7 +54,7 @@ RUN cp .env.example .env 2>/dev/null || ( \
         echo "DB_PASSWORD=\${DB_PASSWORD}" >> .env \
     ) \
     && mkdir -p bootstrap/cache storage/framework/sessions storage/framework/views storage/framework/cache \
-    && php artisan key:generate --force \
+    && php artisan package:discover \
     && test -f bootstrap/cache/services.php \
     && chmod -R 777 storage bootstrap/cache
 

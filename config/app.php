@@ -9,14 +9,10 @@
 //  facades the app boots with. The environment comes from
 //  the .env file the Dockerfile writes and from what
 //  docker-compose.yml sets; the image ships
-//  APP_ENV=production and a key generated at build time.
-//
-//  Known bug (medium): debug mode defaults to on when
-//  APP_DEBUG is missing (app.php:39), so a container started
-//  without it shows the code and stack trace of every error
-//  to the visitor who caused it; only APP_DEBUG=false in
-//  docker-compose.yml keeps it off [debug-by-default]. Fix:
-//  default it to false.
+//  APP_ENV=production and no key — APP_KEY comes from the
+//  stack. Debug mode is off unless APP_DEBUG turns it on,
+//  so a container started without the variable never shows
+//  a visitor the code behind an error.
 //
 //  Used by:
 //    - Laravel's configuration — read as config('app.…')
@@ -35,8 +31,8 @@ return [
 
     // Debug mode: the code and the stack trace of every error
     // on the error page, and the node's errors in the answers
-    // of /blokai
-    'debug' => env('APP_DEBUG', true),
+    // of /blokai; off unless APP_DEBUG says otherwise
+    'debug' => env('APP_DEBUG', false),
 
     // The public address, for the URLs commands generate
     'url' => env('APP_URL', 'https://bitlitas.lt'),
@@ -53,7 +49,10 @@ return [
     'fallback_locale' => 'en',
 
     // The 32-byte key of cookies, sessions and encrypted
-    // values, generated when the image is built
+    // values. docker-compose.yml fills APP_KEY from
+    // LARAVEL_APP_KEY, which runUpdateThisStack.sh makes once
+    // in the stack's .env; without it every page that sets a
+    // cookie is a 500
     'key' => env('APP_KEY'),
 
     'cipher' => 'AES-256-CBC',

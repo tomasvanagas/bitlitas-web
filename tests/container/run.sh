@@ -16,12 +16,13 @@
 #  Laravel's storage, Apache's run folder and logs, and /tmp
 #  for the rest. The app's environment is the one
 #  docker-compose.yml gives bitlitas-web, with test values:
-#  the local database and the stand-in node. When PHPUnit
-#  fails, what the server side logged is printed under its
-#  report — the tail of Apache's error log, the first line
-#  of the latest Laravel log entries, MySQL's errors and the
-#  stand-in node's log. Dockerfile.tests makes this script
-#  the image's entrypoint.
+#  a key of its own, the local database and the stand-in
+#  node. When PHPUnit fails, what the server side logged is
+#  printed under its report — the tail of Apache's error
+#  log, the first line of the latest Laravel log entries,
+#  MySQL's errors and the stand-in node's log.
+#  Dockerfile.tests makes this script the image's
+#  entrypoint.
 # -----------------------------------------------------------
 set -e
 
@@ -32,6 +33,7 @@ NODE=/tmp/fake-node
 MYSQLD="/opt/mysql/lib/ld-linux-x86-64.so.2 --library-path /opt/mysql/lib /opt/mysql/bin/mysqld --defaults-file=$CNF"
 
 export APP_DEBUG=false
+export APP_KEY=base64:Yml0bGl0YXMtcmVncmVzc2lvbi10ZXN0cy1rZXktMzI=
 export DB_HOST=127.0.0.1
 export DB_DATABASE=bitlitas
 export DB_USERNAME=bitlitas

@@ -61,8 +61,9 @@ trait KnownDefects
     // first line of the failure; a passing one fails the test.
     //
     // Used by:
-    //   - the *DefectsTest.php of every suite folder
-    //     (tests/README.md lists the pins)
+    //   - nothing at the moment: no defect is pinned. A pin
+    //     goes in a *DefectsTest.php of its suite folder
+    //     (tests/README.md)
     // -----------------------------------------------------------
 
     protected function pinDefect(string $id, callable $check): void

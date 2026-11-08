@@ -55,29 +55,15 @@ class HomeController extends Controller
     // statistics and the last stored block: the coins mined,
     // cut to whole thousands ("tūkst.") or millions ("mln."),
     // and as a share of the 18.3 million the page names; the
-    // hash rate, cut to whole kH/s; the difficulty, which the
-    // view groups in thousands; the height of the block with
-    // the highest id and its reward in LIT.
-    //
-    // Known bug (medium): the figures and the last block are
-    // read without checking that they exist
-    // (HomeController.php:90-93), so the page is a 500 on a
-    // database seedDB.sh has not filled
-    // [home-without-stats]. Fix: fall back to 0 for a missing
-    // figure or block.
-    //
-    // Known bug (low): the mined figure has two decimals, but
-    // the steps are whole numbers (HomeController.php:99-101):
-    // "> 999" sends 999.5 to the thousands, where it reads
-    // "0 tūkst.", and "<= 999999" sends 999,999.5 to the
-    // millions, "0 mln." [mined-threshold-fractions]. Fix:
-    // step at ">= 1000" and ">= 1000000".
-    //
-    // Known bug (low): under 1,000 the hash rate is shown with
-    // no unit (HomeController.php:117) [hash-rate-no-unit],
-    // and millions are written "mH/s", milli-hashes
-    // (HomeController.php:115) [hash-rate-mega-unit]. Fix:
-    // " H/s" for the bare number and "MH/s" for millions.
+    // hash rate in H/s, cut to whole kH/s or MH/s; the
+    // difficulty, which the view groups in thousands; the
+    // height of the block with the highest id and its reward
+    // in LIT. A figure or a block the database does not hold
+    // yet — before seedDB.sh or the first sync — counts as 0,
+    // so the page opens on an empty database too. The steps
+    // are 1,000 and 1,000,000 themselves: the mined figure
+    // has decimals, and 999.5 coins are still under a
+    // thousand.
     //
     // Used by:
     //   - the visitor's browser — every visit to the site
@@ -85,36 +71,38 @@ class HomeController extends Controller
 
     public function index()
     {
-        // STEP 1: the three figures and the top stored block
-        // ==================================================
-        $money = Statistic::get()->where('stat', '=', 'mined')->first();
-        $hashRate = Statistic::get()->where('stat', '=', 'hash_rate')->first();
-        $difficulty = Statistic::get()->where('stat', '=', 'difficulty')->first();
+        // STEP 1: the three figures and the top stored block,
+        // 0 for whatever is not stored yet
+        // ===================================================
+        $statistics = Statistic::get();
+        $money = $statistics->where('stat', '=', 'mined')->first()?->value ?? 0;
+        $hashRate = $statistics->where('stat', '=', 'hash_rate')->first()?->value ?? 0;
+        $difficulty = $statistics->where('stat', '=', 'difficulty')->first()?->value ?? 0;
         $lastBlock = Blocks::orderBy('id', 'desc')->first();
 
 
         // STEP 2: the coins mined, cut to thousands or millions,
         // and their share of the 18.3 million
         // ======================================================
-        if ($money->value > 999 && $money->value <= 999999) {
-            $moneyResult = floor($money->value / 1000) . ' tūkst.';
-        } elseif ($money->value > 999999) {
-            $moneyResult = floor($money->value / 1000000) . ' mln.';
+        if ($money >= 1000000) {
+            $moneyResult = floor($money / 1000000) . ' mln.';
+        } elseif ($money >= 1000) {
+            $moneyResult = floor($money / 1000) . ' tūkst.';
         } else {
-            $moneyResult = $money->value;
+            $moneyResult = $money;
         }
 
-        $moneyPercent = round(($money->value / 18300000) * 100, 1);
+        $moneyPercent = round(($money / 18300000) * 100, 1);
 
 
-        // STEP 3: the hash rate, cut to kH/s or millions
-        // ==============================================
-        if ($hashRate->value > 999 && $hashRate->value <= 999999) {
-            $hashResult = floor($hashRate->value / 1000) . ' kH/s';
-        } elseif ($hashRate->value > 999999) {
-            $hashResult = floor($hashRate->value / 1000000) . ' mH/s';
+        // STEP 3: the hash rate, in H/s or cut to kH/s or MH/s
+        // ====================================================
+        if ($hashRate >= 1000000) {
+            $hashResult = floor($hashRate / 1000000) . ' MH/s';
+        } elseif ($hashRate >= 1000) {
+            $hashResult = floor($hashRate / 1000) . ' kH/s';
         } else {
-            $hashResult = $hashRate->value;
+            $hashResult = $hashRate . ' H/s';
         }
 
 
@@ -126,10 +114,10 @@ class HomeController extends Controller
             [
                 'money'           => $moneyResult,
                 'moneyPercent'    => $moneyPercent,
-                'lastBlockAmount' => $lastBlock->amount / 1000000000000,
-                'lastBlockHeight' => $lastBlock->block_height,
+                'lastBlockAmount' => ($lastBlock?->amount ?? 0) / 1000000000000,
+                'lastBlockHeight' => $lastBlock?->block_height ?? 0,
                 'hashRate'        => $hashResult,
-                'difficulty'      => $difficulty->value,
+                'difficulty'      => $difficulty,
             ]
         );
     }

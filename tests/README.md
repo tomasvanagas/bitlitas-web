@@ -95,8 +95,12 @@ Five files outside `tests/` belong to the suite:
   site's own files are checked.
 - **Production-shaped.**
   - Apache runs with the environment `docker-compose.yml` gives
-    `bitlitas-web` (`APP_DEBUG`, `DB_*`, `BITLITAS_DAEMON_URL`), with test
-    values, and with the `.env` the Dockerfile wrote.
+    `bitlitas-web` (`APP_DEBUG`, `APP_KEY`, `DB_*`, `BITLITAS_DAEMON_URL`),
+    with test values, and with the `.env` the Dockerfile wrote.
+  - The image carries no app key. In production `APP_KEY` comes from
+    `LARAVEL_APP_KEY` in the stack's `.env`, which `runUpdateThisStack.sh`
+    makes on its first run and keeps; `container/run.sh` exports a test
+    key of its own.
   - The app's `vendor/` stays `--no-dev`. PHPUnit lives apart, in
     `/opt/test-tools`.
   - Everything runs as user 1000, Apache's user — MySQL, the stand-in
@@ -132,22 +136,26 @@ Five files outside `tests/` belong to the suite:
 
 ## Pinned defects
 
-Each defect below is pinned by a test that reproduces it, and none is
-fixed. The fix column is a suggestion.
+None at the moment.
 
-| Id | Test | Defect | Fix |
+## Fixed defects
+
+Every pinned defect has been fixed. Each test now lives in its home file,
+without the pin:
+
+| Id | Home test | What was wrong | The fix |
 |---|---|---|---|
-| `display-errors` | `PlatformDefectsTest::testPhpShowsNoErrorsToVisitors` | The image has no `php.ini`, so PHP runs with `display_errors` On. An error PHP raises before Laravel's handler prints into the page with the server's paths | Dockerfile: `mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"` |
-| `debug-by-default` | `PlatformDefectsTest::testDebugStaysOffWithoutAppDebug` | `config/app.php` defaults debug mode to true. Only `APP_DEBUG=false` in `docker-compose.yml` keeps the code, stack trace and request of every error away from visitors | `'debug' => env('APP_DEBUG', false)` |
-| `home-without-stats` | `SiteDefectsTest::testPageOpensBeforeTheSeed` | The home page is a 500 until `seedDB.sh` has run: `HomeController` reads the figures and the last block without checking that they exist | Fall back to 0 for a missing figure or block |
-| `mined-threshold-fractions` | `SiteDefectsTest::testFractionsJustUnderAStepKeepTheirScale` | 999.5 coins read "0 tūkst." and 999,999.5 read "0 mln.". The mined figure has decimals, but the steps are `> 999` and `<= 999999` | Steps at `>= 1000` and `>= 1000000` |
-| `hash-rate-no-unit` | `SiteDefectsTest::testSmallHashRateNamesItsUnit` | Under 1,000 H/s the rate has no unit. The live site shows a bare "19" | Append " H/s" |
-| `hash-rate-mega-unit` | `SiteDefectsTest::testMillionsOfHashesAreMegahashes` | Millions of hashes read "mH/s" (milli-hashes) | "MH/s" |
-| `description-typo` | `SiteDefectsTest::testDescriptionSpellsKriptovaliuta` | The meta description writes "kriptavaliuta" | "kriptovaliuta" in `core/layout.blade.php` |
-| `html-lang` | `SiteDefectsTest::testPageDeclaresItsLanguage` | Neither html tag of the layout declares the page Lithuanian | `lang="lt"` on both |
-| `account-routes` | `RouteDefectsTest::testAccountRoutesAreNotFound` | The scaffold's `api/user` is routed, though the app has no accounts: a 401 without a token, and a 500 with one, since the token guard looks for an `App\User` model that does not exist | Drop the `api/user` route |
-| `expose-php` | `ServerDefectsTest::testAnswersDoNotNamePhp` | Every answer of the app carries `X-Powered-By: PHP/8.4.27` | `php.ini` with `expose_php = Off` |
-| `session-cookie-secure` | `ServerDefectsTest::testCookiesAreSecure` | The session and XSRF cookies set on every page are not Secure, though the site is HTTPS-only | `SESSION_SECURE_COOKIE=true` in `docker-compose.yml` |
+| `display-errors` | `PhpRuntimeTest::testPhpShowsNoErrorsToVisitors` | The image had no `php.ini`, so PHP ran with `display_errors` On | The Dockerfile installs `php.ini-production` |
+| `expose-php` | `ProtectionTest::testAnswersDoNotNamePhp`, `PhpRuntimeTest::testPhpNamesNoVersion` | Every answer carried `X-Powered-By: PHP/8.4.27` | `expose_php = Off` in that `php.ini` |
+| `debug-by-default` | `ConfigTest::testDebugStaysOffWithoutAppDebug` | `config/app.php` turned debug mode on whenever `APP_DEBUG` was missing | `'debug' => env('APP_DEBUG', false)` |
+| `session-cookie-secure` | `ProtectionTest::testCookiesAreSecure` | The session and XSRF cookies were not Secure | `config/session.php` makes them Secure unless `SESSION_SECURE_COOKIE` says otherwise |
+| `account-routes` | `RouteInventoryTest::testAccountRoutesAreNotFound` | The scaffold's `api/user` answered 401, and 500 with a token | `routes/api.php` has no routes |
+| `home-without-stats` | `HomePageTest::testPageOpensBeforeTheSeed` | The home page was a 500 until `seedDB.sh` had run | `HomeController` counts a missing figure or block as 0 |
+| `mined-threshold-fractions` | `HomePageTest::testMinedCoinsAreShortened` | 999.5 coins read "0 tūkst." and 999,999.5 read "0 mln." | Steps at `>= 1000` and `>= 1000000` |
+| `hash-rate-no-unit` | `HomePageTest::testHashRateIsShownInItsUnit` | Under 1,000 H/s the rate had no unit | " H/s" |
+| `hash-rate-mega-unit` | `HomePageTest::testHashRateIsShownInItsUnit` | Millions of hashes read "mH/s" | "MH/s" |
+| `description-typo` | `HomePageTest::testDescriptionSpellsKriptovaliuta` | The meta description wrote "kriptavaliuta" | "kriptovaliuta" in `core/layout.blade.php` |
+| `html-lang` | `HomePageTest::testPageDeclaresItsLanguage` | Neither html tag of the layout declared the page Lithuanian | `lang="lt"` on both |
 
 ## Found but not pinned
 

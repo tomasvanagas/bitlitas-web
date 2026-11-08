@@ -4,10 +4,10 @@
 //  [*] EncryptCookies — cookies sealed with the app's key
 //
 //  Encrypts every cookie the app sets and decrypts every one
-//  it receives, with APP_KEY. The key is generated when the
-//  image is built, so a rebuilt image cannot read the
-//  cookies of the one before — every visitor simply gets a
-//  new session.
+//  it receives, with APP_KEY. The key is made once, by
+//  runUpdateThisStack.sh in the stack's .env, and kept, so a
+//  rebuilt image still reads the cookies of the one before;
+//  a new key would only give every visitor a new session.
 //
 //  Used by:
 //    - Kernel (app/Http) — the first middleware of the web

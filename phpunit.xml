@@ -8,7 +8,7 @@
   setup without overriding what run.sh exports; Apache keeps the production
   environment run.sh gives it.
   displayDetailsOnIncompleteTests lists every pinned known defect after a
-  run.
+  run, when one is pinned.
 -->
 <phpunit bootstrap="tests/bootstrap.php"
          colors="true"

@@ -4,11 +4,11 @@
 //  [*] RouteInventoryTest — every route the app answers
 //
 //  Reads the live route table and holds it to the list: the
-//  home page, the sync's /blokai and the api/user route of
-//  Laravel's scaffold. A route added or dropped without a
-//  decision fails here. api/user leads nowhere — the app has
-//  no users table — and is pinned in RouteDefectsTest; php
-//  artisan route:list prints the table.
+//  home page and the sync's /blokai, nothing else. A route
+//  added or dropped without a decision fails here. The site
+//  has no accounts, so the paths of Laravel's account pages
+//  and of the scaffold's api/user are all 404s; php artisan
+//  route:list prints the table.
 //
 //  Used by:
 //    - PHPUnit — the Feature suite (runTests.sh)
@@ -48,9 +48,22 @@ class RouteInventoryTest extends FeatureTestCase
 
     // Every route, with its action and middleware
     private const ROUTES = [
-        'GET /'        => ['App\Http\Controllers\HomeController@index', ['web']],
-        'GET blokai'   => ['App\Http\Controllers\BlocksController@index', ['web', 'throttle:10,1']],
-        'GET api/user' => ['Closure', ['api', 'auth:api']],
+        'GET /'      => ['App\Http\Controllers\HomeController@index', ['web']],
+        'GET blokai' => ['App\Http\Controllers\BlocksController@index', ['web', 'throttle:10,1']],
+    ];
+
+    // The paths of Laravel's account pages and api/user, as a
+    // visitor would try them — api/user with and without an
+    // API token
+    private const ACCOUNT_PATHS = [
+        'GET /login',
+        'POST /login',
+        'GET /register',
+        'GET /password/reset',
+        'GET /password/reset/some-token',
+        'POST /logout',
+        'GET /api/user',
+        'GET /api/user?api_token=some-token',
     ];
 
 
@@ -98,6 +111,33 @@ class RouteInventoryTest extends FeatureTestCase
 
         $response->assertStatus(404);
         $response->assertSee('Not Found');
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testAccountRoutesAreNotFound
+    // -----------------------------------------------------------
+    //
+    // A site without accounts answers its account paths with
+    // 404 — api/user too, with a token or without one.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testAccountRoutesAreNotFound(): void
+    {
+        $statuses = [];
+        foreach (self::ACCOUNT_PATHS as $route) {
+            list($method, $path) = explode(' ', $route);
+            $statuses[$route] = $this->call($method, $path)->getStatusCode();
+        }
+
+        $this->assertSame(array_fill_keys(self::ACCOUNT_PATHS, 404), $statuses);
     }
 
 

@@ -64,8 +64,7 @@ class ProductionModeTest extends ServerTestCase
 
         $this->assertSame(500, $response->status);
         $this->assertStringContainsString('Server Error', $response->body);
-        preg_match('/^APP_KEY=(.+)$/m', file_get_contents(base_path('.env')), $key);
-        foreach (['/var/www/html', 'SQLSTATE', 'statistics', 'Stack trace', 'HomeController', $key[1], getenv('DB_PASSWORD')] as $leak) {
+        foreach (['/var/www/html', 'SQLSTATE', 'statistics', 'Stack trace', 'HomeController', getenv('APP_KEY'), getenv('DB_PASSWORD')] as $leak) {
             $this->assertStringNotContainsStringIgnoringCase($leak, $response->body);
         }
     }

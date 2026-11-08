@@ -7,13 +7,8 @@
 //  for the web, a token guard for the API, both reading
 //  users through an Eloquent model, and the password-reset
 //  broker. The site has no accounts — no App\User model, no
-//  users or password_resets table — so these settings serve
-//  only the dead api/user route.
-//
-//  Known bug (medium): api/user, behind the api guard, is a
-//  500 for any request that carries a token, since the guard
-//  looks for the missing App\User model [account-routes] —
-//  see routes/api.php.
+//  users or password_resets table — and no route asks for a
+//  guard, so nothing reads these settings.
 //
 //  Used by:
 //    - Laravel's configuration — read as config('auth.…') by

@@ -8,13 +8,11 @@
 //  storage/framework/sessions, and identified by the
 //  bitlitas_session cookie — the app's name as a slug. The
 //  site stores nothing in it; the session exists because the
-//  web group, CSRF tokens included, needs one.
-//
-//  Known bug (low): the session and XSRF cookies are not
-//  marked Secure (session.php:69), though the site is served
-//  over HTTPS only, so a browser would send them over plain
-//  HTTP too [session-cookie-secure]. Fix: set
-//  SESSION_SECURE_COOKIE=true in docker-compose.yml.
+//  web group, CSRF tokens included, needs one. The site is
+//  served over HTTPS only, so the session and XSRF cookies
+//  are marked Secure unless SESSION_SECURE_COOKIE says
+//  otherwise, and a browser never sends them over plain
+//  HTTP.
 //
 //  Used by:
 //    - Laravel's configuration — read as config('session.…')
@@ -66,7 +64,7 @@ return [
 
     // Whether the cookies are sent over HTTPS only, and kept
     // from JavaScript
-    'secure' => env('SESSION_SECURE_COOKIE', false),
+    'secure' => env('SESSION_SECURE_COOKIE', true),
 
     'http_only' => true,
 

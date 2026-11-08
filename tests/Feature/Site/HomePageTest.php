@@ -7,12 +7,14 @@
 //  the last block row and hands them to welcome.blade.php:
 //  the coins mined, shortened to thousands ("tūkst.") or
 //  millions ("mln.") and as a share of 18.3 million to a
-//  tenth of a percent, the network's hash rate shortened to
-//  kH/s, the difficulty grouped in thousands, and the last
-//  stored block's height and reward in LIT. Around them the
-//  page offers the two wallet downloads, the Android app and
-//  the community links. What the page still gets wrong is
-//  pinned in SiteDefectsTest.
+//  tenth of a percent, the network's hash rate in H/s,
+//  kH/s or MH/s, the difficulty grouped in thousands, and
+//  the last stored block's height and reward in LIT; on a
+//  database that holds none of them yet the page shows
+//  zeros. Around them the page offers the two wallet
+//  downloads, the Android app and the community links, and
+//  it describes itself, in Lithuanian, as the first
+//  Lithuanian cryptocurrency.
 //
 //  Used by:
 //    - PHPUnit — the Feature suite (runTests.sh)
@@ -76,7 +78,36 @@ class HomePageTest extends FeatureTestCase
         $response->assertSee('Iš 18.3 mln. jau iškasta 0</p>', false);
         $response->assertSee('Dabartinis blokų aukštis: 0</li>', false);
         $response->assertSee('Apdovanojimas už paskutinį bloką: 0 LIT</li>', false);
-        $response->assertSee('Tinklo greitis <span class="label label-success">0</span>', false);
+        $response->assertSee('Tinklo greitis <span class="label label-success">0 H/s</span>', false);
+        $response->assertSee('Sunkumas <span class="label label-warning">0</span>', false);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testPageOpensBeforeTheSeed
+    // -----------------------------------------------------------
+    //
+    // On a database the migrations built and nothing filled —
+    // no figure, no block — the page opens all the same,
+    // with zeros where the figures go.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testPageOpensBeforeTheSeed(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+        $response->assertSee('Iš 18.3 mln. jau iškasta 0</p>', false);
+        $response->assertSee('Dabartinis blokų aukštis: 0</li>', false);
+        $response->assertSee('Apdovanojimas už paskutinį bloką: 0 LIT</li>', false);
+        $response->assertSee('Tinklo greitis <span class="label label-success">0 H/s</span>', false);
         $response->assertSee('Sunkumas <span class="label label-warning">0</span>', false);
     }
 
@@ -89,10 +120,10 @@ class HomePageTest extends FeatureTestCase
     // testMinedCoinsAreShortened
     // -----------------------------------------------------------
     //
-    // Up to 999 the figure is shown as stored; from 1,000 it
+    // Under 1,000 the figure is shown as stored; from 1,000 it
     // is whole thousands, from a million whole millions, cut,
-    // never rounded. (A fraction just under 1,000 or a
-    // million is pinned in SiteDefectsTest.)
+    // never rounded. A fraction just under 1,000 or a million
+    // stays on the scale below.
     //
     // Used by:
     //   - PHPUnit — the Feature suite (runTests.sh)
@@ -125,9 +156,11 @@ class HomePageTest extends FeatureTestCase
             'nothing'             => ['0', '0'],
             'a few coins'         => ['17.59', '17.59'],
             'the last whole'      => ['999', '999'],
+            'a fraction under'    => ['999.5', '999.5'],
             'a thousand'          => ['1000', '1 tūkst.'],
             'thousands, cut'      => ['43980.46', '43 tūkst.'],
             'just under millions' => ['999999', '999 tūkst.'],
+            'a fraction under 1M' => ['999999.5', '999 tūkst.'],
             'a million'           => ['1000000', '1 mln.'],
             'the chain on 7 Nov'  => ['1678690.47', '1 mln.'],
             'everything'          => ['18300000', '18 mln.'],
@@ -189,17 +222,19 @@ class HomePageTest extends FeatureTestCase
 
 
     // -----------------------------------------------------------
-    // testHashRateIsShortenedToKilohashes
+    // testHashRateIsShownInItsUnit
     // -----------------------------------------------------------
     //
-    // From 1,000 H/s the hash rate is whole kH/s, cut.
+    // Under 1,000 the hash rate is shown as stored, in H/s;
+    // from 1,000 it is whole kH/s, from a million whole MH/s
+    // — megahashes, never milli's "m" — cut, never rounded.
     //
     // Used by:
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
     #[DataProvider('hashRates')]
-    public function testHashRateIsShortenedToKilohashes(string $hashRate, string $shown): void
+    public function testHashRateIsShownInItsUnit(string $hashRate, string $shown): void
     {
         $this->pageWith(['hash_rate' => $hashRate])->assertSee("Tinklo greitis <span class=\"label label-success\">$shown</span>", false);
     }
@@ -213,18 +248,23 @@ class HomePageTest extends FeatureTestCase
     // hashRates
     // -----------------------------------------------------------
     //
-    // Hash rates from 1,000 H/s up, and as the page shows them.
+    // Hash rates as stored, and as the page shows them.
     //
     // Used by:
-    //   - testHashRateIsShortenedToKilohashes (above)
+    //   - testHashRateIsShownInItsUnit (above)
     // -----------------------------------------------------------
 
     public static function hashRates(): array
     {
         return [
-            'a thousand'        => ['1000', '1 kH/s'],
-            'the 2018 network'  => ['273000', '273 kH/s'],
-            'just under a mega' => ['999999', '999 kH/s'],
+            'nothing'            => ['0', '0 H/s'],
+            'the network, 8 Nov' => ['19', '19 H/s'],
+            'the last bare hash' => ['999', '999 H/s'],
+            'a thousand'         => ['1000', '1 kH/s'],
+            'the 2018 network'   => ['273000', '273 kH/s'],
+            'just under a mega'  => ['999999', '999 kH/s'],
+            'a mega'             => ['1000000', '1 MH/s'],
+            'megas, cut'         => ['2500000', '2 MH/s'],
         ];
     }
 
@@ -332,6 +372,53 @@ class HomePageTest extends FeatureTestCase
         $response->assertSee('Algoritmas: CryptoNight, Monero', false);
         $response->assertSee('Bloko laikas: 60 sek.', false);
         $response->assertSee('*Bet ne mažiau 0.3 LIT už bloką', false);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testDescriptionSpellsKriptovaliuta
+    // -----------------------------------------------------------
+    //
+    // The description search engines show reads
+    // "kriptovaliuta", as the title does.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testDescriptionSpellsKriptovaliuta(): void
+    {
+        $this->pageWith([])->assertSee('<meta name="description" content="Litas sugrįžo. Pirmoji lietuviška kriptovaliuta BitLitas!">', false);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testPageDeclaresItsLanguage
+    // -----------------------------------------------------------
+    //
+    // Both html tags of the layout — the one old Internet
+    // Explorers read and the one every other browser does —
+    // tell browsers, screen readers and translators that the
+    // page is Lithuanian.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testPageDeclaresItsLanguage(): void
+    {
+        $response = $this->pageWith([]);
+
+        $response->assertSee('<!--[if lte IE 9]><html lang="lt" class="no-js is-ie"><![endif]-->', false);
+        $response->assertSee('<!--[if gt IE 8]><!--><html lang="lt" class=no-js><!--<![endif]-->', false);
     }
 
 

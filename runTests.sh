@@ -19,7 +19,7 @@
 #  reaches out fails instead of passing by luck, and nothing
 #  outside the container is touched. Extra arguments go to
 #  PHPUnit — a suite, a test file, a --filter;
-#  tests/README.md lists the suites and the pinned defects.
+#  tests/README.md lists the suites and the defects found.
 # -----------------------------------------------------------
 set -e
 cd "$(dirname "$0")"

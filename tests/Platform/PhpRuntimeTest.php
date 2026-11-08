@@ -6,7 +6,9 @@
 //  The Dockerfile builds on php:8.4.27-apache — the release
 //  that fixes PHP2Shell (CVE-2026-109618 and CVE-2026-109619)
 //  — and adds pdo_mysql and gd; mbstring, curl, OpenSSL and
-//  the rest come with the official image. Session upload
+//  the rest come with the official image. php.ini is PHP's
+//  production file, so PHP's own errors go to the log and
+//  never into a page, and expose_php is off. Session upload
 //  progress is off, PHP's own mitigation of CVE-2026-115560,
 //  which no release fixes yet. Apache runs PHP as mod_php,
 //  built with the command line this suite runs on and
@@ -72,6 +74,56 @@ class PhpRuntimeTest extends TestCase
     public function testPhpIsTheImagesVersion(): void
     {
         $this->assertSame('8.4.27', PHP_VERSION);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testPhpShowsNoErrorsToVisitors
+    // -----------------------------------------------------------
+    //
+    // PHP keeps its own errors out of the pages Apache serves:
+    // php.ini is the production one, with display_errors off,
+    // so an error PHP raises before Laravel's handler is in
+    // place never prints the server's paths. A fresh command
+    // line PHP is asked: it reads the ini files mod_php
+    // reads, untouched by whatever the suite's own process
+    // sets.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testPhpShowsNoErrorsToVisitors(): void
+    {
+        $this->assertSame(PHP_CONFIG_FILE_PATH . '/php.ini', php_ini_loaded_file());
+        $value = trim((string) shell_exec('php -r "echo ini_get(\'display_errors\');"'));
+        $this->assertContains(strtolower($value), ['', '0', 'off'], "PHP runs with display_errors $value");
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testPhpNamesNoVersion
+    // -----------------------------------------------------------
+    //
+    // expose_php is off, so PHP adds no X-Powered-By naming
+    // its version to an answer; the Server suite checks the
+    // answers themselves.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testPhpNamesNoVersion(): void
+    {
+        $this->assertSame('', ini_get('expose_php'));
     }
 
 

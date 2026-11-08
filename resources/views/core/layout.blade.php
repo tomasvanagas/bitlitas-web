@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<!--[if lte IE 9]><html class="no-js is-ie"><![endif]-->
-<!--[if gt IE 8]><!--><html class=no-js><!--<![endif]-->
+<!--[if lte IE 9]><html lang="lt" class="no-js is-ie"><![endif]-->
+<!--[if gt IE 8]><!--><html lang="lt" class=no-js><!--<![endif]-->
 <head>
     <meta charset="utf-8">
-    <meta name="description" content="Litas sugrįžo. Pirmoji lietuviška kriptavaliuta BitLitas!">
+    <meta name="description" content="Litas sugrįžo. Pirmoji lietuviška kriptovaliuta BitLitas!">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 

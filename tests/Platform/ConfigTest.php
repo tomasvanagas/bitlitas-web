@@ -4,11 +4,12 @@
 //  [*] ConfigTest — the app's configuration at run time
 //
 //  The image carries the .env file its Dockerfile writes: the
-//  app's name, production, a key generated at build time,
-//  the public URL, and the database settings as references
-//  — ${DB_HOST} and the like — which the environment
-//  docker-compose.yml gives the container fills in. Debug
-//  mode follows APP_DEBUG, the full node's address comes from
+//  app's name, production, the public URL, and the database
+//  settings as references — ${DB_HOST} and the like — which
+//  the environment docker-compose.yml gives the container
+//  fills in. The key is no part of the image: APP_KEY comes
+//  from the environment alone. Debug mode follows APP_DEBUG
+//  and is off without it, the full node's address comes from
 //  BITLITAS_DAEMON_URL (config/services.php). The root
 //  filesystem is read-only: Apache, serving as user 1000,
 //  can write the folders Laravel writes to — tmpfs mounts
@@ -83,8 +84,8 @@ class ConfigTest extends TestCase
     // -----------------------------------------------------------
     //
     // .env names exactly what the Dockerfile writes; the
-    // database password appears only as a reference, and the
-    // key is a base64 AES-256 key.
+    // database password appears only as a reference, and
+    // there is no key.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
@@ -98,8 +99,6 @@ class ConfigTest extends TestCase
             list($name, $value) = explode('=', $line, 2);
             $values[$name] = $value;
         }
-        $key = $values['APP_KEY'];
-        unset($values['APP_KEY']);
 
         $this->assertSame([
             'APP_NAME'      => 'Bitlitas',
@@ -111,6 +110,30 @@ class ConfigTest extends TestCase
             'DB_USERNAME'   => '${DB_USERNAME}',
             'DB_PASSWORD'   => '${DB_PASSWORD}',
         ], $values);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testKeyComesFromTheEnvironment
+    // -----------------------------------------------------------
+    //
+    // The app's key is APP_KEY as the environment gives it —
+    // LARAVEL_APP_KEY of the stack's .env in production — and
+    // a base64 AES-256 key.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testKeyComesFromTheEnvironment(): void
+    {
+        $key = getenv('APP_KEY');
+
+        $this->assertSame($key, config('app.key'));
         $this->assertStringStartsWith('base64:', $key);
         $this->assertSame(32, strlen(base64_decode(substr($key, 7), true)));
     }
@@ -135,6 +158,30 @@ class ConfigTest extends TestCase
     {
         $this->assertSame('false', getenv('APP_DEBUG'));
         $this->assertFalse(config('app.debug'));
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testDebugStaysOffWithoutAppDebug
+    // -----------------------------------------------------------
+    //
+    // A container started without APP_DEBUG runs with debug
+    // mode off, so no visitor sees the code, the stack trace
+    // or the request behind an error.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testDebugStaysOffWithoutAppDebug(): void
+    {
+        $app = $this->withoutEnv(['APP_DEBUG'], 'app.php');
+
+        $this->assertFalse($app['debug']);
     }
 
 
@@ -300,8 +347,8 @@ class ConfigTest extends TestCase
     // env() reads too; all three are put back afterwards.
     //
     // Used by:
+    //   - testDebugStaysOffWithoutAppDebug (above)
     //   - testNodeSettingsDefaultToALocalNode (above)
-    //   - PlatformDefectsTest (this folder)
     // -----------------------------------------------------------
 
     public static function withoutEnv(array $names, string $file): array

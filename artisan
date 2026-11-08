@@ -12,7 +12,7 @@
 //
 //  Used by:
 //    - seedDB.sh — the migrations of a fresh database
-//    - the Dockerfile — the key generated when the image is
+//    - the Dockerfile — package discovery, when the image is
 //      built
 //    - bitlitas-cron — bitlitas:sync, every minute
 //    - syncWebappFullnode.sh — bitlitas:sync, by hand

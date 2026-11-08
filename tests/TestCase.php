@@ -130,7 +130,7 @@ abstract class TestCase extends LaravelTestCase
     //
     // Used by:
     //   - SyncCommandTest (Feature/Sync/)
-    //   - RouteDefectsTest (Feature/Routes/)
+    //   - RouteInventoryTest (Feature/Routes/)
     // -----------------------------------------------------------
 
     protected function console(string ...$words): array

@@ -75,8 +75,8 @@ class Kernel extends HttpKernel
     ];
 
     // The names a route can ask for: throttle on /blokai and
-    // in the api group, auth on api/user; guest is what the
-    // scaffold's account controllers would use, which do not
+    // in the api group; auth and guest are what the
+    // scaffold's account routes would use, which do not
     // exist, and auth.basic, bindings and can are not used
     protected $routeMiddleware = [
         'auth'       => \Illuminate\Auth\Middleware\Authenticate::class,
