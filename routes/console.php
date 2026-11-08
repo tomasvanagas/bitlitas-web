@@ -29,8 +29,9 @@ Artisan::command('inspire', function () {
 // block, in syncs of 10,000 blocks: one line per sync saying
 // where it got to, then the figures. Exits 0 at the top, and
 // 1 with the reason when the node failed or another sync
-// holds the lock. Run it as www-data, the web server's user,
-// so any file it creates stays writable for the site
+// holds the lock. docker exec runs it as the container's user,
+// 1000, the one php-fpm serves as, so any file it creates
+// stays writable for the site
 Artisan::command('bitlitas:sync', function (NetworkSync $sync) {
     do {
         try {

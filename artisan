@@ -14,7 +14,8 @@
 //    - seedDB.sh — the migrations of a fresh database
 //    - the Dockerfile — the key generated when the image is
 //      built
-//    - the operator — bitlitas:sync, best as www-data
+//    - bitlitas-cron — bitlitas:sync, every minute
+//    - syncWebappFullnode.sh — bitlitas:sync, by hand
 //    - tests/container/run.sh — the test database's
 //      migrations
 // -----------------------------------------------------------

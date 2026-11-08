@@ -646,9 +646,10 @@ class NetworkSyncTest extends FeatureTestCase
     // -----------------------------------------------------------
     //
     // The lock file takes read and write from every user:
-    // php-fpm serves as www-data while bitlitas:sync may run
-    // as root, and whichever creates the file first must not
-    // lock the other out.
+    // php-fpm and bitlitas:sync both run as the container's
+    // user, 1000, but a sync started as another one — docker
+    // exec -u root — must neither lock php-fpm out nor be
+    // locked out by it.
     //
     // Used by:
     //   - PHPUnit — the Feature suite (runTests.sh)

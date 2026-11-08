@@ -9,9 +9,10 @@
 //  — ${DB_HOST} and the like — which the environment
 //  docker-compose.yml gives the container fills in. Debug
 //  mode follows APP_DEBUG, the full node's address comes from
-//  BITLITAS_DAEMON_URL (config/services.php), and php-fpm,
-//  serving as www-data, can write every folder Laravel
-//  writes to.
+//  BITLITAS_DAEMON_URL (config/services.php). The root
+//  filesystem is read-only: php-fpm, serving as user 1000,
+//  can write the folders Laravel writes to — tmpfs mounts
+//  and the log's bind mount — and nothing else of the app.
 //
 //  Used by:
 //    - PHPUnit — the Platform suite (runTests.sh)
@@ -55,6 +56,21 @@ class ConfigTest extends TestCase
         'storage/framework/cache',
         'storage/framework',
         'storage/logs',
+    ];
+
+    // The rest of the app, which takes no write: the code, the
+    // .env file, the vendor, and bootstrap/cache, whose two
+    // manifests the image's build writes
+    private const READ_ONLY = [
+        '.env',
+        'app',
+        'bootstrap/cache',
+        'config',
+        'public',
+        'resources',
+        'routes',
+        'storage/app',
+        'vendor',
     ];
 
 
@@ -227,7 +243,7 @@ class ConfigTest extends TestCase
     // testStorageIsWritableForPhpFpm
     // -----------------------------------------------------------
     //
-    // The suite runs as www-data, php-fpm's user, and every
+    // The suite runs as user 1000, php-fpm's user, and every
     // folder Laravel writes to takes its writes.
     //
     // Used by:
@@ -236,10 +252,37 @@ class ConfigTest extends TestCase
 
     public function testStorageIsWritableForPhpFpm(): void
     {
-        $this->assertSame('www-data', posix_getpwuid(posix_geteuid())['name']);
+        $this->assertSame(1000, posix_geteuid());
         foreach (self::WRITABLE as $folder) {
             $this->assertIsWritable(base_path($folder), "$folder is not writable");
         }
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testEverythingElseIsReadOnly
+    // -----------------------------------------------------------
+    //
+    // Nothing else of the app takes a write, bootstrap/cache
+    // included, so Laravel's two manifests there must come
+    // with the image: package discovery writes the packages
+    // one, the build's first boot the services one.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testEverythingElseIsReadOnly(): void
+    {
+        foreach (self::READ_ONLY as $path) {
+            $this->assertIsNotWritable(base_path($path), "$path is writable");
+        }
+        $this->assertFileExists(base_path('bootstrap/cache/packages.php'));
+        $this->assertFileExists(base_path('bootstrap/cache/services.php'));
     }
 
 

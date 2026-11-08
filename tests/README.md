@@ -30,9 +30,12 @@ Each run does three things:
 2. Adds `Dockerfile.tests` on top, as `bitlitas-web-tests`.
 3. Starts the result with `--network none`, shaped like the `bitlitas-web`
    container of `docker-compose.yml`:
-   - a writable root filesystem;
-   - `storage/logs` as a mount of its own: a tmpfs owned by www-data here,
-     a bind mount in production;
+   - user 1000 on a read-only root filesystem;
+   - the same tmpfs mounts: `/tmp`, and `storage/framework` with its
+     `cache`, `sessions` and `views` folders;
+   - `storage/logs` as a mount of its own: a tmpfs owned by 1000 here, a
+     bind mount in production;
+   - MySQL's data and socket on tmpfs mounts as well;
    - at most 2 GB and 2 CPUs.
 
 Every argument goes to PHPUnit. When PHPUnit fails, `container/run.sh` also
@@ -51,7 +54,7 @@ vendor and PHPUnit. The test run itself never does.
 
 | Suite | Folder | What it checks | How |
 |---|---|---|---|
-| Platform | `Platform/` | The image as shipped: PHP, its extensions and php-fpm's settings; no dev packages and only the locked versions; the configuration and the `.env` the Dockerfile writes; the MySQL server and the schema; nginx and supervisord; the templates and the files they link | Reads the container's files, `php-fpm -tt` and `-i`, and the database |
+| Platform | `Platform/` | The image as shipped: PHP, its extensions and php-fpm's settings; no dev packages and only the locked versions; the configuration and the `.env` the Dockerfile writes; the MySQL server and the schema; nginx and supervisord, and the user every server runs as; what is writable and what is not; the templates and the files they link | Reads the container's files and processes, `php-fpm -tt` and `-i`, and the database |
 | Feature | `Feature/` | The home page and its figures, the sync from the node (`NetworkSync`, `GET /blokai`, `php artisan bitlitas:sync`), the node client, the route table | Laravel's in-process HTTP and console kernels; each test runs inside a transaction that is rolled back. The node is `FakeDaemon` in memory, or the stand-in over HTTP for `DaemonClientTest` |
 | Server | `Server/` | What happens in front of the app: nginx's static files and front controller, what is never served, errors in production mode, the sync as production runs it | Requests to the real nginx on `127.0.0.1:80`, carrying the headers the endpoint adds; rows are committed, and both tables emptied around every test |
 
@@ -96,8 +99,10 @@ Five files outside `tests/` belong to the suite:
     values, and with the `.env` the Dockerfile wrote.
   - The app's `vendor/` stays `--no-dev`. PHPUnit lives apart, in
     `/opt/test-tools`.
-  - PHPUnit runs as www-data, php-fpm's user, so every file a test makes
-    the app write is owned as in production.
+  - Everything runs as user 1000, php-fpm's user — MySQL, the stand-in
+    node, nginx, PHPUnit — so every file a test makes the app write is
+    owned as in production, and nothing is written outside the tmpfs
+    mounts.
 - **Every test builds its own rows** through the World. It starts from the
   empty tables the migrations build.
 - **No bug is fixed from here.** A test that finds a defect does not change
@@ -172,8 +177,9 @@ repository, harmless today, or not testable here:
 - **A chain reorganization goes unnoticed.** Blocks stored before one keep
   their old rewards and times, because the table keeps no hashes. The two
   branches' rewards differ only by fees.
-- **Running `bitlitas:sync` as root can break the site's logging.** It can
-  leave storage files that only root can write, Laravel's log among them,
-  and php-fpm then fails on its next log line. `routes/console.php` says
-  to run the command as www-data. The suite runs as www-data, so it cannot
-  show this.
+- **Running `bitlitas:sync` as root can break the site's logging.** A
+  `docker exec -u root` can leave storage files that only root can write,
+  Laravel's log among them, and php-fpm then fails on its next log line.
+  `docker exec` without `-u` runs the command as 1000, php-fpm's user, as
+  bitlitas-cron and `syncWebappFullnode.sh` do. The suite runs everything
+  as 1000, so it cannot show this.

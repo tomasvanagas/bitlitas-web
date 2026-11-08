@@ -8,23 +8,26 @@
 #  build, a stand-in for the full node that bitlitas-exit
 #  forwards to, and nginx with php-fpm under supervisord the
 #  way the image starts them — then runs PHPUnit over the
-#  suite as www-data, the user php-fpm serves the site as;
-#  every argument goes to PHPUnit (a suite, a file, a
-#  --filter). The app's environment is the one
-#  docker-compose.yml gives bitlitas-web, with test values:
-#  the local database and the stand-in node. MySQL keeps its
-#  data on the tmpfs runTests.sh mounts. When PHPUnit fails,
-#  what the server side logged is printed under its report —
-#  nginx's and php-fpm's errors, the first line of the latest
-#  Laravel log entries, MySQL's errors and the stand-in
-#  node's log. Dockerfile.tests makes this script the image's
-#  entrypoint.
+#  suite; every argument goes to PHPUnit (a suite, a file, a
+#  --filter). Everything runs as the container's user, 1000,
+#  the user php-fpm serves the site as, on a read-only root
+#  filesystem, so every file goes to one of the tmpfs mounts
+#  runTests.sh gives the container: MySQL's data and socket,
+#  Laravel's storage, and /tmp for the rest. The app's
+#  environment is the one docker-compose.yml gives
+#  bitlitas-web, with test values: the local database and
+#  the stand-in node. When PHPUnit fails, what the server
+#  side logged is printed under its report — the errors
+#  nginx and php-fpm wrote to supervisord's output, the
+#  first line of the latest Laravel log entries, MySQL's
+#  errors and the stand-in node's log. Dockerfile.tests
+#  makes this script the image's entrypoint.
 # -----------------------------------------------------------
 set -e
 
 APP=/var/www/html
 CNF=$APP/tests/container/my.cnf
-LOGS=/var/log/bitlitas-tests
+LOGS=/tmp/bitlitas-tests
 NODE=/tmp/fake-node
 MYSQLD="/opt/mysql/lib/ld-linux-x86-64.so.2 --library-path /opt/mysql/lib /opt/mysql/bin/mysqld --defaults-file=$CNF"
 
@@ -36,8 +39,6 @@ export DB_PASSWORD=bitlitas-tests
 export BITLITAS_DAEMON_URL=http://127.0.0.1:18081
 
 mkdir -p $LOGS $NODE
-chown www-data:www-data $LOGS $NODE
-chown mysql /var/lib/mysql /run/mysqld
 
 
 # Waits until something answers on the port, or gives up
@@ -54,8 +55,8 @@ wait_for() {
 # MySQL: a fresh data directory on tmpfs, then the database and
 # user the official image creates from MYSQL_DATABASE, MYSQL_USER
 # and MYSQL_PASSWORD
-su -s /bin/sh mysql -c "$MYSQLD --initialize-insecure"
-su -s /bin/sh mysql -c "$MYSQLD > /dev/null 2>&1 &"
+$MYSQLD --initialize-insecure
+$MYSQLD > /dev/null 2>&1 &
 wait_for 3306
 php <<'PHP'
 <?php
@@ -69,34 +70,31 @@ PHP
 
 
 # The schema, as seedDB.sh builds it in production
-su -s /bin/sh www-data -c "php $APP/artisan migrate --force" > $LOGS/migrate.out
+php $APP/artisan migrate --force > $LOGS/migrate.out
 
 
 # The full node's stand-in, steered by the tests through $NODE
-su -s /bin/sh www-data -c "php -S 127.0.0.1:18081 $APP/tests/container/fake-node.php >> $LOGS/fake-node.log 2>&1 &"
+php -S 127.0.0.1:18081 $APP/tests/container/fake-node.php >> $LOGS/fake-node.log 2>&1 &
 wait_for 18081
 
 
-# nginx and php-fpm, started the way the production image starts them
-/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf > $LOGS/supervisord.out 2>&1 &
+# nginx and php-fpm, started the way the production image starts
+# them; supervisord's output is the container's output in
+# production, two files here
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf > $LOGS/server.out 2> $LOGS/server.err &
 wait_for 80
 
 
-# The suite, as www-data — su's own options end at --, so every
-# argument after the user reaches PHPUnit; its failures come
-# with the server side's logs
+# The suite; its failures come with the server side's logs
 status=0
-su -s /bin/sh -c 'cd /var/www/html && exec php /opt/test-tools/vendor/bin/phpunit "$@"' -- www-data sh "$@" || status=$?
+(cd $APP && php /opt/test-tools/vendor/bin/phpunit "$@") || status=$?
 if [ $status -ne 0 ]; then
-    if [ -s /var/log/nginx/error.log ]; then
-        echo
-        echo "----- nginx error log, last lines"
-        tail -n 20 /var/log/nginx/error.log
-    fi
-    errors=$(cat /tmp/php-fpm-stderr*.log 2>/dev/null | grep -v ' NOTICE: ' | tail -n 20)
+    # nginx's error lines and php-fpm's, without php-fpm's notices
+    # and the access lines it writes to the same stream
+    errors=$(grep -vE ' NOTICE: |" [0-9]{3}$' $LOGS/server.err 2>/dev/null | tail -n 20)
     if [ -n "$errors" ]; then
         echo
-        echo "----- php-fpm errors, last lines"
+        echo "----- nginx and php-fpm errors, last lines"
         echo "$errors"
     fi
     if [ -s $APP/storage/logs/laravel.log ]; then

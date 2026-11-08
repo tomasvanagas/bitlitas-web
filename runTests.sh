@@ -9,23 +9,30 @@
 #  (Dockerfile.tests: MySQL 5.7.44, PHPUnit, the suite) and
 #  runs the suite inside a throwaway container with no
 #  network. The container is shaped like the bitlitas-web
-#  one of docker-compose.yml: a writable root filesystem,
-#  and storage/logs as a mount of its own — a tmpfs owned by
-#  www-data here, as the bind mount is in production. MySQL
-#  keeps its data on a tmpfs too. A test that reaches out
-#  fails instead of passing by luck, and nothing outside the
-#  container is touched. Extra arguments go to PHPUnit — a
-#  suite, a test file, a --filter; tests/README.md lists the
-#  suites and the pinned defects.
+#  one of docker-compose.yml: user 1000, a read-only root
+#  filesystem, and the same tmpfs mounts — /tmp and
+#  storage/framework with its cache, sessions and views
+#  folders. storage/logs is a tmpfs owned by 1000 here, as
+#  the bind mount is in production, and MySQL keeps its
+#  data and its socket on tmpfs mounts too. A test that
+#  reaches out fails instead of passing by luck, and nothing
+#  outside the container is touched. Extra arguments go to
+#  PHPUnit — a suite, a test file, a --filter;
+#  tests/README.md lists the suites and the pinned defects.
 # -----------------------------------------------------------
 set -e
 cd "$(dirname "$0")"
 
 sudo docker build -t bitlitas-web-check .
 sudo docker build -f Dockerfile.tests -t bitlitas-web-tests .
-sudo docker run --rm --name bitlitas-web-tests --network none \
+sudo docker run --rm --name bitlitas-web-tests --network none --read-only \
   --memory=2g --memory-swap=2g --cpus=2 \
-  --tmpfs /var/www/html/storage/logs:uid=82,gid=82,mode=775 \
-  --tmpfs /var/lib/mysql:size=512m \
-  --tmpfs /run/mysqld \
+  --tmpfs /tmp:uid=1000,gid=1000 \
+  --tmpfs /var/www/html/storage/framework:uid=1000,gid=1000 \
+  --tmpfs /var/www/html/storage/framework/cache:uid=1000,gid=1000 \
+  --tmpfs /var/www/html/storage/framework/sessions:uid=1000,gid=1000 \
+  --tmpfs /var/www/html/storage/framework/views:uid=1000,gid=1000 \
+  --tmpfs /var/www/html/storage/logs:uid=1000,gid=1000,mode=775 \
+  --tmpfs /var/lib/mysql:uid=1000,gid=1000,size=512m \
+  --tmpfs /run/mysqld:uid=1000,gid=1000 \
   bitlitas-web-tests "$@"

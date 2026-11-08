@@ -9,9 +9,10 @@
 //  curl, OpenSSL and the rest come with the official image.
 //  Session upload progress is off, PHP's own mitigation of
 //  CVE-2026-115560, which no release fixes yet. php-fpm serves
-//  the app as www-data, runs only files ending in .php, and
-//  hands every worker the container's environment —
-//  clear_env = no, from the official image's docker.conf —
+//  the app as the container's user, 1000, runs only files
+//  ending in .php, and hands every worker the container's
+//  environment — clear_env = no, from the official image's
+//  docker.conf —
 //  which is the only way the variables docker-compose.yml
 //  sets (APP_DEBUG, DB_*, BITLITAS_DAEMON_URL) reach Laravel.
 //  The settings are read from php-fpm -tt, which prints the
@@ -154,25 +155,27 @@ class PhpRuntimeTest extends TestCase
 
 
     // -----------------------------------------------------------
-    // testPhpFpmServesAsWwwData
+    // testPhpFpmServesAsTheContainersUser
     // -----------------------------------------------------------
     //
-    // The workers run as www-data, the owner of storage/logs
-    // (runUpdateThisStack.sh chowns the bind mount to 82:82),
-    // and run only PHP's default .php and .phar files —
-    // nginx hands them nothing but paths ending in .php.
+    // The pool names no user or group — php-fpm prints both as
+    // undefined — so its workers run as whoever starts
+    // php-fpm: user 1000, the container's and the owner of
+    // storage/logs (runUpdateThisStack.sh chowns the bind
+    // mount to 1000:1000). They run only PHP's default .php
+    // and .phar files — nginx hands them nothing but paths
+    // ending in .php.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
     // -----------------------------------------------------------
 
-    public function testPhpFpmServesAsWwwData(): void
+    public function testPhpFpmServesAsTheContainersUser(): void
     {
         $settings = $this->fpmSettings();
 
-        $this->assertSame('www-data', $settings['user'] ?? null);
-        $this->assertSame('www-data', $settings['group'] ?? null);
-        $this->assertSame(82, posix_getpwnam('www-data')['uid']);
+        $this->assertSame('undefined', $settings['user'] ?? null);
+        $this->assertSame('undefined', $settings['group'] ?? null);
         $this->assertSame('.php .phar', $settings['security.limit_extensions'] ?? null);
     }
 

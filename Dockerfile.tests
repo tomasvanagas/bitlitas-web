@@ -9,12 +9,13 @@
 #  while the app's is Alpine, built on musl, so the server
 #  comes with every library it links, glibc's own loader
 #  included, under /opt/mysql; run.sh starts it through that
-#  loader, as the mysql user added here, since mysqld will
-#  not run as root. PHPUnit goes to /opt/test-tools, never
-#  into the app's vendor, which stays exactly what ships.
-#  The suite itself is kept out of the production image by
-#  .dockerignore; Dockerfile.tests.dockerignore lets only
-#  phpunit.xml and tests/ into this build.
+#  loader. PHPUnit goes to /opt/test-tools, never into the
+#  app's vendor, which stays exactly what ships. The steps
+#  run as root; the container then runs as user 1000, as
+#  the production image does. The suite itself is kept out
+#  of the production image by .dockerignore;
+#  Dockerfile.tests.dockerignore lets only phpunit.xml and
+#  tests/ into this build.
 #
 #  Used by:
 #    - runTests.sh (this folder)
@@ -34,9 +35,9 @@ RUN mkdir -p /opt/mysql/bin /opt/mysql/lib /opt/mysql/share &&                \
 
 
 FROM ${BASE}
+USER root
 
 COPY --from=mysql /opt/mysql /opt/mysql
-RUN adduser -S -D -H -s /sbin/nologin mysql
 
 
 # PHPUnit, at the versions tests/container/composer.lock pins
@@ -50,4 +51,5 @@ RUN COMPOSER_HOME=/tmp/composer composer install --working-dir=/opt/test-tools \
 COPY phpunit.xml /var/www/html/phpunit.xml
 COPY tests /var/www/html/tests
 
+USER 1000:1000
 ENTRYPOINT ["sh", "/var/www/html/tests/container/run.sh"]

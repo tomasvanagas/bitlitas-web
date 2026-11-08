@@ -349,10 +349,10 @@ class NetworkSync
     // An exclusive lock on storage/framework/bitlitas-sync.lock,
     // taken without waiting, so a cron run and a visitor cannot
     // store the same blocks twice; null while another sync
-    // holds it. The file is opened to every user, since php-fpm
-    // serves as www-data while bitlitas:sync may run as root,
-    // and whichever creates it first must not lock the other
-    // out.
+    // holds it. The file is opened to every user: php-fpm and
+    // bitlitas:sync both run as the container's user, 1000,
+    // but a sync started as another one — docker exec -u root
+    // — must neither lock php-fpm out nor be locked out by it.
     //
     // Used by:
     //   - run (above)
@@ -363,7 +363,7 @@ class NetworkSync
         $path = storage_path('framework/bitlitas-sync.lock');
         $handle = fopen($path, 'c');
 
-        // Shared by php-fpm (www-data) and artisan (often run as root)
+        // Shared by php-fpm and every artisan run, whichever user starts it
         @chmod($path, 0666);
 
         if (!flock($handle, LOCK_EX | LOCK_NB)) {
