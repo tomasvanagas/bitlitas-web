@@ -1,16 +1,17 @@
 <?php
 
 // -----------------------------------------------------------
-//  [*] TrustProxies — which proxies' headers the app believes
+//  [*] TrustProxies — believes the forwarded headers
 //
-//  Every request reaches the app through the bitlitas-endpoint
-//  Caddy and nginx, but no proxy is trusted here, so Laravel
-//  ignores their X-Forwarded headers: the visitor's address
-//  is the endpoint's on every request, and the scheme is
-//  plain HTTP. That is why the /blokai throttle counts every
-//  visitor as one (SyncOverHttpTest) — a limit for the whole
-//  site. The page links its files by relative paths, so the
-//  scheme Laravel sees changes nothing a visitor gets.
+//  Laravel's proxy trust, opened wide: every proxy is
+//  trusted and all four X-Forwarded headers are believed.
+//  Apache is reached only through the bitlitas-endpoint
+//  Caddy, on the stack's internal network
+//  (docker-compose.yml), and mod_remoteip has already put
+//  the visitor's address in place of the endpoint's
+//  (apache/000-default.conf). The endpoint sets
+//  X-Forwarded-Proto to https — which is what makes the
+//  URLs Laravel builds come out as https.
 //
 //  Used by:
 //    - Kernel (app/Http) — the global middleware
@@ -33,8 +34,13 @@ use Illuminate\Http\Request;
 // TrustProxies
 // -----------------------------------------------------------
 //
-// Laravel's own middleware with no trusted proxy, and the
-// headers it would read from one.
+// Takes the scheme, host, port and client address the
+// forwarded headers name from any peer, and refuses
+// nothing. Apache trusts every proxy as well: mod_remoteip
+// has taken the first X-Forwarded-For address as the
+// visitor and removed the header, so Laravel's client
+// address is the one Apache resolved. That address keys
+// the /blokai throttle, which so counts each visitor apart.
 //
 // Used by:
 //   - Kernel (app/Http) — every request
@@ -43,11 +49,10 @@ use Illuminate\Http\Request;
 class TrustProxies extends Middleware
 {
 
-    // The trusted proxies' addresses: unset, so none
-    protected $proxies;
+    // The peers trusted as proxies: all of them
+    protected $proxies = '*';
 
-    // The forwarded headers a trusted proxy's values would come
-    // from, as Symfony's bit set: the Forwarded header and the
-    // four X-Forwarded ones
-    protected $headers = Request::HEADER_FORWARDED | Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO;
+    // The forwarded headers believed: For, Host, Port and
+    // Proto, as Symfony's bit set
+    protected $headers = Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO;
 }

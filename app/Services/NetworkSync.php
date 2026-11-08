@@ -8,7 +8,7 @@
 //  stores the blocks the table lacks, oldest first, from the
 //  headers of get_block_headers_range, then recomputes the
 //  mined coins, the hash rate and the difficulty. A lock
-//  file lets one sync run at a time, whether php-fpm or the
+//  file lets one sync run at a time, whether a visit or the
 //  command line started it.
 //
 //  Blocks stored before a reorganization of the chain keep
@@ -349,10 +349,10 @@ class NetworkSync
     // An exclusive lock on storage/framework/bitlitas-sync.lock,
     // taken without waiting, so a cron run and a visitor cannot
     // store the same blocks twice; null while another sync
-    // holds it. The file is opened to every user: php-fpm and
+    // holds it. The file is opened to every user: the site and
     // bitlitas:sync both run as the container's user, 1000,
     // but a sync started as another one — docker exec -u root
-    // — must neither lock php-fpm out nor be locked out by it.
+    // — must neither lock the site out nor be locked out by it.
     //
     // Used by:
     //   - run (above)
@@ -363,7 +363,7 @@ class NetworkSync
         $path = storage_path('framework/bitlitas-sync.lock');
         $handle = fopen($path, 'c');
 
-        // Shared by php-fpm and every artisan run, whichever user starts it
+        // Shared by the site and every artisan run, whichever user starts it
         @chmod($path, 0666);
 
         if (!flock($handle, LOCK_EX | LOCK_NB)) {

@@ -6,22 +6,22 @@
 #  production stack gives the app — the MySQL 5.7.44 of the
 #  bitlitas-mysql service holding the schema the migrations
 #  build, a stand-in for the full node that bitlitas-exit
-#  forwards to, and nginx with php-fpm under supervisord the
-#  way the image starts them — then runs PHPUnit over the
-#  suite; every argument goes to PHPUnit (a suite, a file, a
-#  --filter). Everything runs as the container's user, 1000,
-#  the user php-fpm serves the site as, on a read-only root
+#  forwards to, and Apache on port 8080 the way the image
+#  starts it — then runs PHPUnit over the suite; every
+#  argument goes to PHPUnit (a suite, a file, a --filter).
+#  Everything runs as the container's user, 1000, the user
+#  Apache serves the site as, on a read-only root
 #  filesystem, so every file goes to one of the tmpfs mounts
 #  runTests.sh gives the container: MySQL's data and socket,
-#  Laravel's storage, and /tmp for the rest. The app's
-#  environment is the one docker-compose.yml gives
-#  bitlitas-web, with test values: the local database and
-#  the stand-in node. When PHPUnit fails, what the server
-#  side logged is printed under its report — the errors
-#  nginx and php-fpm wrote to supervisord's output, the
-#  first line of the latest Laravel log entries, MySQL's
-#  errors and the stand-in node's log. Dockerfile.tests
-#  makes this script the image's entrypoint.
+#  Laravel's storage, Apache's run folder and logs, and /tmp
+#  for the rest. The app's environment is the one
+#  docker-compose.yml gives bitlitas-web, with test values:
+#  the local database and the stand-in node. When PHPUnit
+#  fails, what the server side logged is printed under its
+#  report — the tail of Apache's error log, the first line
+#  of the latest Laravel log entries, MySQL's errors and the
+#  stand-in node's log. Dockerfile.tests makes this script
+#  the image's entrypoint.
 # -----------------------------------------------------------
 set -e
 
@@ -78,24 +78,19 @@ php -S 127.0.0.1:18081 $APP/tests/container/fake-node.php >> $LOGS/fake-node.log
 wait_for 18081
 
 
-# nginx and php-fpm, started the way the production image starts
-# them; supervisord's output is the container's output in
-# production, two files here
-/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf > $LOGS/server.out 2> $LOGS/server.err &
-wait_for 80
+# Apache, started the way the production image starts it
+apache2-foreground > $LOGS/apache.out 2>&1 &
+wait_for 8080
 
 
 # The suite; its failures come with the server side's logs
 status=0
 (cd $APP && php /opt/test-tools/vendor/bin/phpunit "$@") || status=$?
 if [ $status -ne 0 ]; then
-    # nginx's error lines and php-fpm's, without php-fpm's notices
-    # and the access lines it writes to the same stream
-    errors=$(grep -vE ' NOTICE: |" [0-9]{3}$' $LOGS/server.err 2>/dev/null | tail -n 20)
-    if [ -n "$errors" ]; then
+    if [ -s /var/www/logs/error.log ]; then
         echo
-        echo "----- nginx and php-fpm errors, last lines"
-        echo "$errors"
+        echo "----- Apache error log, last lines"
+        tail -n 20 /var/www/logs/error.log
     fi
     if [ -s $APP/storage/logs/laravel.log ]; then
         echo

@@ -3,7 +3,7 @@
 // -----------------------------------------------------------
 //  [*] ProductionModeTest — how errors look to a visitor
 //
-//  php-fpm runs the app in the production environment
+//  Apache runs the app in the production environment
 //  run.sh gives it — APP_ENV production from .env, APP_DEBUG
 //  off — so a server error is Laravel's plain 500 page, with
 //  nothing in it about how the server is built or what its

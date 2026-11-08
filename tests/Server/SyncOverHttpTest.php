@@ -3,16 +3,16 @@
 // -----------------------------------------------------------
 //  [*] SyncOverHttpTest — the sync as production runs it
 //
-//  GET /blokai through nginx and php-fpm, which reach the
-//  node at the address the container's environment gives
-//  them — BITLITAS_DAEMON_URL, the stand-in node here, as
-//  bitlitas-exit is in production — and store into MySQL
+//  GET /blokai through Apache, whose PHP reaches the node at
+//  the address the container's environment gives it —
+//  BITLITAS_DAEMON_URL, the stand-in node here, as
+//  bitlitas-exit is in production — and stores into MySQL
 //  what the next visit to the home page shows. A node error
 //  is a 503 in plain words, with the reason in laravel.log;
 //  the lock is shared with every other process, a sync run
 //  from the command line included; and the throttle counts
-//  every visitor as one, since the app trusts no proxy and
-//  sees the endpoint's address on every request.
+//  each visitor apart, by the address X-Forwarded-For
+//  names.
 //
 //  Used by:
 //    - PHPUnit — the Server suite (runTests.sh)
@@ -55,8 +55,9 @@ class SyncOverHttpTest extends ServerTestCase
     // testVisitSyncsFromTheNodeTheEnvironmentNames
     // -----------------------------------------------------------
     //
-    // One visit stores the stand-in node's 2,500 blocks: php-fpm
-    // asked the node BITLITAS_DAEMON_URL names, at /json_rpc.
+    // One visit stores the stand-in node's 2,500 blocks: the
+    // app asked the node BITLITAS_DAEMON_URL names, at
+    // /json_rpc.
     //
     // Used by:
     //   - PHPUnit — the Server suite (runTests.sh)
@@ -169,27 +170,27 @@ class SyncOverHttpTest extends ServerTestCase
 
 
     // -----------------------------------------------------------
-    // testThrottleCountsEveryVisitorAsOne
+    // testThrottleCountsEachVisitorApart
     // -----------------------------------------------------------
     //
-    // Ten visits a minute from ten addresses use up the
-    // throttle for an eleventh address too: TrustProxies
-    // trusts no proxy, so the app reads every visitor as the
-    // endpoint — the route is limited for the whole site,
-    // which is what keeps the node safe.
+    // Ten visits a minute use up the throttle of the address
+    // they come from, while another visitor still gets in:
+    // the app reads each visitor's own address, the one
+    // mod_remoteip takes from X-Forwarded-For.
     //
     // Used by:
     //   - PHPUnit — the Server suite (runTests.sh)
     // -----------------------------------------------------------
 
-    public function testThrottleCountsEveryVisitorAsOne(): void
+    public function testThrottleCountsEachVisitorApart(): void
     {
         FakeNodeServer::configure(['height' => 3]);
 
-        for ($visitor = 1; $visitor <= 10; $visitor++) {
-            $this->assertSame(200, $this->http->get('/blokai', ['X-Forwarded-For' => "198.51.100.$visitor"])->status);
+        for ($visit = 1; $visit <= 10; $visit++) {
+            $this->assertSame(200, $this->http->get('/blokai', ['X-Forwarded-For' => '198.51.100.1'])->status);
         }
 
-        $this->assertSame(429, $this->http->get('/blokai', ['X-Forwarded-For' => '198.51.100.11'])->status);
+        $this->assertSame(429, $this->http->get('/blokai', ['X-Forwarded-For' => '198.51.100.1'])->status);
+        $this->assertSame(200, $this->http->get('/blokai', ['X-Forwarded-For' => '198.51.100.2'])->status);
     }
 }

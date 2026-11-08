@@ -3,10 +3,10 @@
   The regression suite of the Laravel app, run by runTests.sh inside the
   test container (tests/README.md). Three suites, cheapest first: Platform
   checks the image as shipped, Feature drives the app in-process with every
-  test inside a rolled-back transaction, and Server talks to the real nginx
-  and php-fpm over HTTP. The env values switch the in-process app to
-  Laravel's testing setup without overriding what run.sh exports; php-fpm
-  keeps the production environment run.sh gives it.
+  test inside a rolled-back transaction, and Server talks to the real Apache
+  over HTTP. The env values switch the in-process app to Laravel's testing
+  setup without overriding what run.sh exports; Apache keeps the production
+  environment run.sh gives it.
   displayDetailsOnIncompleteTests lists every pinned known defect after a
   run.
 -->

@@ -3,10 +3,10 @@
 // -----------------------------------------------------------
 //  [*] server.php — the router of PHP's built-in web server
 //
-//  Laravel's stand-in for nginx when the app is run with PHP's
-//  own development server: a path naming a file of public/
-//  is served as it is, everything else goes to the front
-//  controller. Production never uses it — nginx serves the
+//  Laravel's stand-in for Apache when the app is run with
+//  PHP's own development server: a path naming a file of
+//  public/ is served as it is, everything else goes to the
+//  front controller. Production never uses it — Apache serves the
 //  site, and this file is outside its root.
 //
 //  Used by:

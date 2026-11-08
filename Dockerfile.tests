@@ -5,11 +5,11 @@
 #  the bitlitas-web-check tag, plus what the suite needs
 #  around the app — nothing inside the app changes. MySQL
 #  5.7.44 comes from mysql:5.7, the image the bitlitas-mysql
-#  service runs. That image is Oracle Linux, built on glibc,
-#  while the app's is Alpine, built on musl, so the server
-#  comes with every library it links, glibc's own loader
-#  included, under /opt/mysql; run.sh starts it through that
-#  loader. PHPUnit goes to /opt/test-tools, never into the
+#  service runs. That image is Oracle Linux and the app's is
+#  Debian, each with libraries of its own versions, so the
+#  server comes with every library it links, glibc's own
+#  loader included, under /opt/mysql; run.sh starts it
+#  through that loader. PHPUnit goes to /opt/test-tools, never into the
 #  app's vendor, which stays exactly what ships. The steps
 #  run as root; the container then runs as user 1000, as
 #  the production image does. The suite itself is kept out

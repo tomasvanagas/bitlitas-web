@@ -4,14 +4,16 @@
 //  [*] index.php — the front controller
 //
 //  Every request that names no file of public/ ends up here:
-//  the site's nginx hands such paths to this script. It loads
-//  the autoloader and the application, passes the request
-//  through the HTTP kernel, sends the response and lets the
-//  kernel finish its work after the response has gone.
+//  Apache's front-controller rule hands such paths to this
+//  script. It loads the autoloader and the application,
+//  passes the request through the HTTP kernel, sends the
+//  response and lets the kernel finish its work after the
+//  response has gone.
 //
 //  Used by:
-//    - nginx — the site's server block in the image, for
-//      every path that is no file
+//    - Apache — the virtual host's rewrite rule
+//      (apache/000-default.conf), for every path that is no
+//      file or folder, and its DirectoryIndex for /
 //    - server.php — the router of PHP's built-in server
 // -----------------------------------------------------------
 

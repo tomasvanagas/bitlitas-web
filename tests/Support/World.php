@@ -11,7 +11,7 @@
 //  its own, single blocks, or a run of Chain's blocks as a
 //  sync would have stored them. The Feature suite's rows go
 //  with its transaction; the Server suite's are committed,
-//  for php-fpm to see, and removed after each test.
+//  for Apache's PHP to see, and removed after each test.
 //
 //  Used by:
 //    - TestCase (tests/) — one World per test
@@ -243,7 +243,7 @@ class World
     // -----------------------------------------------------------
     //
     // Both tables emptied, whoever wrote the rows — the test,
-    // or php-fpm syncing on its behalf.
+    // or the site syncing on its behalf.
     //
     // Used by:
     //   - ServerTestCase (tests/) — before and after every test

@@ -1,7 +1,7 @@
 <?php
 
 // -----------------------------------------------------------
-//  [*] ServerResponse — what nginx answered
+//  [*] ServerResponse — what Apache answered
 //
 //  The status, the headers and the body of one answer, with
 //  the readers the Server suite needs: a header by name, the

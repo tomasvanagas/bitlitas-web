@@ -4,7 +4,7 @@
 //  [*] FakeNodeServer — steers the stand-in node over HTTP
 //
 //  The test side of tests/container/fake-node.php, the node
-//  run.sh starts on 127.0.0.1:18081 for php-fpm and for
+//  run.sh starts on 127.0.0.1:18081 for the site and for
 //  DaemonClientTest: a test writes the node's state to
 //  /tmp/fake-node/state.json and reads back every request
 //  the node logged to /tmp/fake-node/requests.jsonl. Both

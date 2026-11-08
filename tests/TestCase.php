@@ -9,7 +9,7 @@
 //  Laravel's log a step wrote, and the sync lock held the
 //  way a running sync holds it. FeatureTestCase wraps each
 //  test in a transaction on top of it; ServerTestCase adds
-//  an HTTP client for the real nginx instead.
+//  an HTTP client for the real Apache instead.
 //
 //  Used by:
 //    - FeatureTestCase, ServerTestCase (this folder)

@@ -7,7 +7,7 @@ the production image. Inside that container it starts three things:
 - MySQL 5.7.44, the server of the `bitlitas-mysql` service, with the schema
   the migrations build;
 - a stand-in for the full node;
-- nginx with php-fpm, serving the app the way production does.
+- Apache with mod_php on port 8080, serving the app the way production does.
 
 Then it runs PHPUnit 13.4.
 
@@ -41,7 +41,7 @@ Each run does three things:
 Every argument goes to PHPUnit. When PHPUnit fails, `container/run.sh` also
 prints what the server side logged:
 
-- nginx's and php-fpm's errors;
+- Apache's error log;
 - the latest Laravel log entries;
 - MySQL's errors;
 - the stand-in node's PHP errors.
@@ -54,9 +54,9 @@ vendor and PHPUnit. The test run itself never does.
 
 | Suite | Folder | What it checks | How |
 |---|---|---|---|
-| Platform | `Platform/` | The image as shipped: PHP, its extensions and php-fpm's settings; no dev packages and only the locked versions; the configuration and the `.env` the Dockerfile writes; the MySQL server and the schema; nginx and supervisord, and the user every server runs as; what is writable and what is not; the templates and the files they link | Reads the container's files and processes, `php-fpm -tt` and `-i`, and the database |
+| Platform | `Platform/` | The image as shipped: PHP, its extensions and settings; no dev packages and only the locked versions; the configuration and the `.env` the Dockerfile writes; the MySQL server and the schema; Apache's configuration — the front controller, the trusted proxies, the logs — and the user it runs as; what is writable and what is not; the templates and the files they link | Reads the container's files and processes, PHP's settings, and the database |
 | Feature | `Feature/` | The home page and its figures, the sync from the node (`NetworkSync`, `GET /blokai`, `php artisan bitlitas:sync`), the node client, the route table | Laravel's in-process HTTP and console kernels; each test runs inside a transaction that is rolled back. The node is `FakeDaemon` in memory, or the stand-in over HTTP for `DaemonClientTest` |
-| Server | `Server/` | What happens in front of the app: nginx's static files and front controller, what is never served, errors in production mode, the sync as production runs it | Requests to the real nginx on `127.0.0.1:80`, carrying the headers the endpoint adds; rows are committed, and both tables emptied around every test |
+| Server | `Server/` | What happens in front of the app: Apache's static files and front controller, the visitor's address behind any chain of proxies, what is never served, errors in production mode, the sync as production runs it | Requests to the real Apache on `127.0.0.1:8080`, carrying the headers the endpoint adds; rows are committed, and both tables emptied around every test |
 
 ## Layout
 
@@ -72,7 +72,7 @@ vendor and PHPUnit. The test run itself never does.
 | `Support/NodeEmulator.php` | bitlitasd v0.11's JSON-RPC answers, steered by one state array (busy, capped, damaged, failing, growing, …) |
 | `Support/FakeDaemon.php` | The app's own `DaemonClient` with a `NodeEmulator` in place of curl |
 | `Support/FakeNodeServer.php` | The stand-in node over HTTP: its state file and request log |
-| `Support/ServerClient.php`, `ServerResponse.php` | curl for the real nginx, and what it answered |
+| `Support/ServerClient.php`, `ServerResponse.php` | curl for the real Apache, and what it answered |
 | `Support/KnownDefects.php` | `pinDefect`, see Rules |
 | `container/` | `run.sh`, the image's entrypoint; `my.cnf` for MySQL; `fake-node.php`, the stand-in node's router for `php -S`; and the composer files of the test tools |
 | `Platform/`, `Feature/<Area>/`, `Server/` | The suites |
@@ -94,13 +94,13 @@ Five files outside `tests/` belong to the suite:
   page's CDN scripts, fonts and images are outside the suite; only the
   site's own files are checked.
 - **Production-shaped.**
-  - php-fpm runs with the environment `docker-compose.yml` gives
+  - Apache runs with the environment `docker-compose.yml` gives
     `bitlitas-web` (`APP_DEBUG`, `DB_*`, `BITLITAS_DAEMON_URL`), with test
     values, and with the `.env` the Dockerfile wrote.
   - The app's `vendor/` stays `--no-dev`. PHPUnit lives apart, in
     `/opt/test-tools`.
-  - Everything runs as user 1000, php-fpm's user — MySQL, the stand-in
-    node, nginx, PHPUnit — so every file a test makes the app write is
+  - Everything runs as user 1000, Apache's user — MySQL, the stand-in
+    node, Apache, PHPUnit — so every file a test makes the app write is
     owned as in production, and nothing is written outside the tmpfs
     mounts.
 - **Every test builds its own rows** through the World. It starts from the
@@ -137,8 +137,7 @@ fixed. The fix column is a suggestion.
 
 | Id | Test | Defect | Fix |
 |---|---|---|---|
-| `display-errors` | `PlatformDefectsTest::testPhpFpmShowsNoErrorsToVisitors` | The image has no `php.ini`, so php-fpm runs with `display_errors` On. An error PHP raises before Laravel's handler prints into the page with the server's paths | Dockerfile: `mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"` |
-| `fpm-listens-everywhere` | `PlatformDefectsTest::testPhpFpmListensOnlyForNginx` | The official image's `zz-docker.conf` sets `listen = 9000` on every interface. Any container on `bitlitas-isolated` could send php-fpm FastCGI requests of its own, though nginx in the same container is its only client | Dockerfile: `sed -i 's/^listen = 9000$/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/zz-docker.conf` |
+| `display-errors` | `PlatformDefectsTest::testPhpShowsNoErrorsToVisitors` | The image has no `php.ini`, so PHP runs with `display_errors` On. An error PHP raises before Laravel's handler prints into the page with the server's paths | Dockerfile: `mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"` |
 | `debug-by-default` | `PlatformDefectsTest::testDebugStaysOffWithoutAppDebug` | `config/app.php` defaults debug mode to true. Only `APP_DEBUG=false` in `docker-compose.yml` keeps the code, stack trace and request of every error away from visitors | `'debug' => env('APP_DEBUG', false)` |
 | `home-without-stats` | `SiteDefectsTest::testPageOpensBeforeTheSeed` | The home page is a 500 until `seedDB.sh` has run: `HomeController` reads the figures and the last block without checking that they exist | Fall back to 0 for a missing figure or block |
 | `mined-threshold-fractions` | `SiteDefectsTest::testFractionsJustUnderAStepKeepTheirScale` | 999.5 coins read "0 tūkst." and 999,999.5 read "0 mln.". The mined figure has decimals, but the steps are `> 999` and `<= 999999` | Steps at `>= 1000` and `>= 1000000` |
@@ -168,18 +167,12 @@ repository, harmless today, or not testable here:
 - **Glyphicons point at missing fonts.** `grid.css` declares the Glyphicons
   font from `../fonts/`, which is not shipped. No element uses a glyphicon,
   so no browser asks for it.
-- **The `/blokai` throttle is shared by everyone.** It counts every visitor
-  as one, because `TrustProxies` trusts no proxy.
-  `SyncOverHttpTest::testThrottleCountsEveryVisitorAsOne` holds the
-  behaviour. The limit protects the node for the whole site, but one
-  visitor can use it up for a minute; `php artisan bitlitas:sync` is not
-  throttled.
 - **A chain reorganization goes unnoticed.** Blocks stored before one keep
   their old rewards and times, because the table keeps no hashes. The two
   branches' rewards differ only by fees.
 - **Running `bitlitas:sync` as root can break the site's logging.** A
   `docker exec -u root` can leave storage files that only root can write,
-  Laravel's log among them, and php-fpm then fails on its next log line.
-  `docker exec` without `-u` runs the command as 1000, php-fpm's user, as
+  Laravel's log among them, and the site then fails on its next log line.
+  `docker exec` without `-u` runs the command as 1000, Apache's user, as
   bitlitas-cron and `syncWebappFullnode.sh` do. The suite runs everything
   as 1000, so it cannot show this.

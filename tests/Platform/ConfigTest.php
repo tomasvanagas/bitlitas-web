@@ -10,7 +10,7 @@
 //  docker-compose.yml gives the container fills in. Debug
 //  mode follows APP_DEBUG, the full node's address comes from
 //  BITLITAS_DAEMON_URL (config/services.php). The root
-//  filesystem is read-only: php-fpm, serving as user 1000,
+//  filesystem is read-only: Apache, serving as user 1000,
 //  can write the folders Laravel writes to — tmpfs mounts
 //  and the log's bind mount — and nothing else of the app.
 //
@@ -240,17 +240,17 @@ class ConfigTest extends TestCase
 
 
     // -----------------------------------------------------------
-    // testStorageIsWritableForPhpFpm
+    // testStorageIsWritableForTheSite
     // -----------------------------------------------------------
     //
-    // The suite runs as user 1000, php-fpm's user, and every
+    // The suite runs as user 1000, Apache's user, and every
     // folder Laravel writes to takes its writes.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
     // -----------------------------------------------------------
 
-    public function testStorageIsWritableForPhpFpm(): void
+    public function testStorageIsWritableForTheSite(): void
     {
         $this->assertSame(1000, posix_geteuid());
         foreach (self::WRITABLE as $folder) {

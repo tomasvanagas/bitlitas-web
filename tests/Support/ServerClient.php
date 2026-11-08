@@ -1,18 +1,21 @@
 <?php
 
 // -----------------------------------------------------------
-//  [*] ServerClient — an HTTP client for the real nginx
+//  [*] ServerClient — an HTTP client for the real Apache
 //
-//  Talks to the nginx that run.sh starts on port 80 the way
-//  the bitlitas-endpoint Caddy does in production: every
+//  Talks to the Apache that run.sh starts on port 8080 the
+//  way the bitlitas-endpoint Caddy does in production: every
 //  request carries the public host name, which Caddy passes
 //  through, and the X-Forwarded headers a reverse proxy adds
 //  — the visitor's address and that the visit came in over
-//  HTTPS. Plain curl, since the app's vendor ships no HTTP
-//  client and the suite adds none: redirects are never
-//  followed, error statuses never throw, and a path goes
-//  out exactly as written, dots and all, so a test sees
-//  what nginx answered to what it sent.
+//  HTTPS. Apache trusts every proxy, so the visitor of a
+//  request from 127.0.0.1 is the first address of its
+//  X-Forwarded-For, as it is for the endpoint's. Plain
+//  curl, since the app's vendor ships no HTTP client and the
+//  suite adds none: redirects are never followed, error
+//  statuses never throw, and a path goes out exactly as
+//  written, dots and all, so a test sees what Apache
+//  answered to what it sent.
 //
 //  Used by:
 //    - ServerTestCase (tests/) — one client per test
@@ -43,10 +46,10 @@ namespace Tests\Support;
 class ServerClient
 {
 
-    // Where run.sh starts nginx inside the container
-    private const BASE = 'http://127.0.0.1';
+    // Where run.sh starts Apache inside the container
+    private const BASE = 'http://127.0.0.1:8080';
 
-    // What the request carries when it reaches nginx through
+    // What the request carries when it reaches Apache through
     // the endpoint
     public const ENDPOINT_HEADERS = [
         'Host'              => 'bitlitas.lt',
@@ -141,7 +144,7 @@ class ServerClient
         if ($body === false) {
             $error = curl_error($curl);
             curl_close($curl);
-            throw new \RuntimeException("nginx did not answer $method $path: $error");
+            throw new \RuntimeException("Apache did not answer $method $path: $error");
         }
         $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
         curl_close($curl);

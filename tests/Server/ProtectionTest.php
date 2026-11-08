@@ -3,13 +3,14 @@
 // -----------------------------------------------------------
 //  [*] ProtectionTest — what the web server never gives out
 //
-//  nginx's root is public/, so the app's code, its .env with
-//  the key, composer's files, the log and the git metadata
-//  are outside what it serves: a request for them reaches
-//  Laravel and gets its 404, or none at all, a path that
-//  climbs out of the root is refused. PHP runs only from
-//  .php files — a picture asked for as a script is never
-//  run — and nginx names no version.
+//  Apache's document root is public/, so the app's code,
+//  its .env with the key, composer's files, Apache's own
+//  configuration, the log and the git metadata are outside
+//  what it serves: a request for them reaches Laravel and
+//  gets its 404, and a path that climbs out of the root is
+//  refused. PHP runs only from .php files — a picture asked
+//  for as a script is never run — and Apache names no
+//  version.
 //
 //  Used by:
 //    - PHPUnit — the Server suite (runTests.sh)
@@ -95,6 +96,7 @@ class ProtectionTest extends ServerTestCase
             'server.php'             => ['/server.php', 'REQUEST_URI'],
             'the configuration'      => ['/config/app.php', 'APP_DEBUG'],
             'the node client'        => ['/app/Services/DaemonClient.php', 'json_rpc'],
+            'the virtual host'       => ['/apache/000-default.conf', 'RemoteIPHeader'],
             'the log'                => ['/storage/logs/laravel.log', 'WARNING'],
             'the git metadata'       => ['/.git/config', '[core]'],
         ];
@@ -109,9 +111,9 @@ class ProtectionTest extends ServerTestCase
     // testPictureAskedForAsAScriptIsNeverRun
     // -----------------------------------------------------------
     //
-    // A path ending in .php is sent to php-fpm, which runs no
-    // file but a .php one: the logo with /x.php behind it is
-    // refused, not executed.
+    // PHP runs only for a file whose name ends in .php: the
+    // logo with /x.php behind it is the logo with a path
+    // after it, which Apache refuses rather than runs.
     //
     // Used by:
     //   - PHPUnit — the Server suite (runTests.sh)
@@ -131,17 +133,19 @@ class ProtectionTest extends ServerTestCase
 
 
     // -----------------------------------------------------------
-    // testNginxNamesNoVersion
+    // testApacheNamesNoVersion
     // -----------------------------------------------------------
     //
-    // The Server header says nginx and nothing more.
+    // The Server header says Apache and nothing more, and
+    // Apache's own error pages sign with no version either.
     //
     // Used by:
     //   - PHPUnit — the Server suite (runTests.sh)
     // -----------------------------------------------------------
 
-    public function testNginxNamesNoVersion(): void
+    public function testApacheNamesNoVersion(): void
     {
-        $this->assertSame('nginx', $this->http->head('/css/main.css')->header('Server'));
+        $this->assertSame('Apache', $this->http->head('/css/main.css')->header('Server'));
+        $this->assertStringNotContainsString('Apache/', $this->http->get('/css/')->body);
     }
 }

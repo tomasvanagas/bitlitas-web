@@ -3,14 +3,14 @@
 // -----------------------------------------------------------
 //  [*] ServerTestCase — the base of the tests over HTTP
 //
-//  TestCase with a client for the real nginx that run.sh
-//  starts on port 80. php-fpm runs the app in processes of
+//  TestCase with a client for the real Apache that run.sh
+//  starts on port 8080. Apache runs the app in processes of
 //  its own, which see only committed rows, so these tests
 //  get no transaction: the rows a test builds through its
 //  World are committed, and both tables are emptied again
 //  around the test. The stand-in node starts each test
 //  fresh, and so does the sync route's throttle, whose
-//  counters php-fpm keeps in Laravel's file cache.
+//  counters the app keeps in Laravel's file cache.
 //
 //  Used by:
 //    - the Server suite (Server/)

@@ -6,7 +6,7 @@
 //  The scaffold's disks: storage/app on the local disk, a
 //  public one under storage/app/public, and an S3 bucket.
 //  The app stores no files through them — the downloads and
-//  pictures are plain files of public/, served by nginx.
+//  pictures are plain files of public/, served by Apache.
 //
 //  Used by:
 //    - Laravel's configuration — read as

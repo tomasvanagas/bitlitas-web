@@ -1,13 +1,15 @@
 <?php
 
 // -----------------------------------------------------------
-//  [*] FrontControllerTest — how nginx hands requests over
+//  [*] FrontControllerTest — how Apache hands requests over
 //
 //  The routing half of the web server: a path that is a file
-//  of public/ is served by nginx itself, with its type and
+//  of public/ is served by Apache itself, with its type and
 //  without passing through Laravel; any other path goes to
 //  index.php, and Laravel answers one it has no route for
-//  with its 404 page. A folder is never listed.
+//  with its 404 page. A folder is never listed, and one
+//  asked for without its slash is sent to the slashed
+//  address on https.
 //
 //  Used by:
 //    - PHPUnit — the Server suite (runTests.sh)
@@ -124,25 +126,27 @@ class FrontControllerTest extends ServerTestCase
 
 
     // -----------------------------------------------------------
-    // testFilesOfPublicComeFromNginx
+    // testFilesOfPublicComeFromApache
     // -----------------------------------------------------------
     //
-    // Each file of public/ is answered by nginx with its type
+    // Each file of public/ is answered by Apache with its type
     // and its whole size, and sets no cookie — Laravel never
-    // saw the request.
+    // saw the request. A HEAD of the scaffold's empty
+    // favicon.ico gets no Content-Length at all, which reads
+    // as the size it is, 0.
     //
     // Used by:
     //   - PHPUnit — the Server suite (runTests.sh)
     // -----------------------------------------------------------
 
     #[DataProvider('publicFiles')]
-    public function testFilesOfPublicComeFromNginx(string $path, string $type): void
+    public function testFilesOfPublicComeFromApache(string $path, string $type): void
     {
         $response = $this->http->head($path);
 
         $this->assertSame(200, $response->status);
         $this->assertSame($type, $response->header('Content-Type'));
-        $this->assertSame((string) filesize(public_path(ltrim($path, '/'))), $response->header('Content-Length'));
+        $this->assertSame(filesize(public_path(ltrim($path, '/'))), (int) $response->header('Content-Length'));
         $this->assertSame([], $response->cookies());
     }
 
@@ -155,26 +159,26 @@ class FrontControllerTest extends ServerTestCase
     // publicFiles
     // -----------------------------------------------------------
     //
-    // Files of public/ the page links, with the type nginx
+    // Files of public/ the page links, with the type Apache
     // gives each.
     //
     // Used by:
-    //   - testFilesOfPublicComeFromNginx (above)
+    //   - testFilesOfPublicComeFromApache (above)
     // -----------------------------------------------------------
 
     public static function publicFiles(): array
     {
         return [
             'the stylesheet'     => ['/css/main.css', 'text/css'],
-            'the script'         => ['/js/main.js', 'application/javascript'],
+            'the script'         => ['/js/main.js', 'text/javascript'],
             'the logo'           => ['/img/logo.png', 'image/png'],
             'the background'     => ['/img/bg-default.jpg', 'image/jpeg'],
-            'the tab icon'       => ['/img/favicon/icon.ico', 'image/x-icon'],
-            'the root icon'      => ['/favicon.ico', 'image/x-icon'],
+            'the tab icon'       => ['/img/favicon/icon.ico', 'image/vnd.microsoft.icon'],
+            'the root icon'      => ['/favicon.ico', 'image/vnd.microsoft.icon'],
             'the film, webm'     => ['/video/bitlitas.webm', 'video/webm'],
             'the film, mp4'      => ['/video/bitlitas.mp4', 'video/mp4'],
-            'the Linux wallet'   => ['/downloads/v1/bitlitas.tar.gz', 'application/octet-stream'],
-            'the Windows wallet' => ['/downloads/v1/bitlitas.exe', 'application/octet-stream'],
+            'the Linux wallet'   => ['/downloads/v1/bitlitas.tar.gz', 'application/x-gzip'],
+            'the Windows wallet' => ['/downloads/v1/bitlitas.exe', 'application/x-msdos-program'],
             'robots.txt'         => ['/robots.txt', 'text/plain'],
         ];
     }
@@ -201,5 +205,31 @@ class FrontControllerTest extends ServerTestCase
 
         $this->assertSame(403, $response->status);
         $this->assertStringNotContainsString('main.css', $response->body);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testFolderWithoutItsSlashIsSentToItOverHttps
+    // -----------------------------------------------------------
+    //
+    // A folder asked for without its slash is redirected to
+    // the slashed address on https://bitlitas.lt: mod_dir
+    // builds it from the virtual host's ServerName, since TLS
+    // ends at the endpoint.
+    //
+    // Used by:
+    //   - PHPUnit — the Server suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testFolderWithoutItsSlashIsSentToItOverHttps(): void
+    {
+        $response = $this->http->get('/css');
+
+        $this->assertSame(301, $response->status);
+        $this->assertSame('https://bitlitas.lt/css/', $response->header('Location'));
     }
 }

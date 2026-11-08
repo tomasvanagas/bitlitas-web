@@ -42,7 +42,7 @@ class Kernel extends HttpKernel
 
     // Run on every request: the maintenance switch, the post
     // size limit, trimming and nulling of inputs, and the
-    // proxy handling of TrustProxies, which trusts no proxy
+    // proxy handling of TrustProxies, which trusts every proxy
     protected $middleware = [
         \Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
