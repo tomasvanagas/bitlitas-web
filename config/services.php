@@ -35,4 +35,12 @@ return [
         'secret' => env('STRIPE_SECRET'),
     ],
 
+    // The Bitlitas full node (bitlitasd) the home page's statistics come from
+    'bitlitas' => [
+        // Its RPC address: port 18081 on v0.11 nodes, 18281 on v0.18
+        'daemon_url' => env('BITLITAS_DAEMON_URL', 'http://127.0.0.1:18081'),
+        // "user:password" if the node runs with --rpc-login
+        'daemon_login' => env('BITLITAS_DAEMON_LOGIN'),
+    ],
+
 ];

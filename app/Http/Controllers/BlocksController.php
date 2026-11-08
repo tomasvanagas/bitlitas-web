@@ -1,88 +1,40 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Blocks;
-use App\Statistic;
+
+use App\Services\DaemonException;
+use App\Services\NetworkSync;
+use Illuminate\Support\Facades\Log;
 
 class BlocksController extends Controller
 {
-    public function index()
+    /**
+     * Blocks stored per visit, which keeps one request well inside
+     * PHP's time limit; `php artisan bitlitas:sync` has no limit.
+     */
+    const BLOCKS_PER_REQUEST = 5000;
+
+    /**
+     * GET /blokai: bring the blocks and statistics up to date with the
+     * full node and report how far that got, as JSON.
+     *
+     * @param  NetworkSync $sync
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index(NetworkSync $sync)
     {
-        $id = $x = 1;
+        try {
+            $result = $sync->run(self::BLOCKS_PER_REQUEST);
+        } catch (DaemonException $e) {
+            Log::warning('Bitlitas node sync failed: ' . $e->getMessage());
 
-        while($x < 100) {
-            $x++;
-
-            $lastBlock = Blocks::orderBy('id', 'desc')->first();
-
-            if ($lastBlock) {
-                $id = $lastBlock->block_height + 1;
-            }
-
-            $url = "https://explorer.bitlitas.lt/api/blokas/" . $id;
-
-            $json = json_decode(self::loadFile($url), true);
-
-            if (isset($json['data']['block_height']) && $json['data']['block_height']) {
-                $data = $json['data'];
-
-                if(Blocks::where('block_height', '=', $data['block_height'])->count() < 1) {
-
-                    $amount = $data['txs'][0]['lit_outputs'];
-
-                    Blocks::create(
-                        [
-                            'block_height' => (int)$data['block_height'],
-                            'amount' => $amount,
-                            'timestamp' => (int)$data['timestamp']
-                        ]
-                    );
-                }
-            } else {
-                $sum = round((Blocks::sum('amount') / 1000000000000), 2);
-
-                self::addToTable($sum, 'mined');
-
-                $url = "https://explorer.bitlitas.lt/api/networkinfo";
-                $json = json_decode(self::loadFile($url), true);
-                $hash_rate = $json['data']['hash_rate'];
-                $difficulty = $json['data']['difficulty'];
-
-                self::addToTable($hash_rate, 'hash_rate');
-                self::addToTable($difficulty, 'difficulty');
-
-                dd($sum);
-            }
+            return response()->json([
+                'status' => 'error',
+                // The details name internal addresses, so only when debugging
+                'error' => config('app.debug') ? $e->getMessage() : 'The full node did not answer',
+            ], 503);
         }
 
-        return redirect()->route('blocks');
-    }
-
-    private function addToTable($value, $stat) {
-        if(Statistic::where('stat', '=', $stat)->count() < 1) {
-            Statistic::create(
-                [
-                    'stat' => $stat,
-                    'value' => $value,
-                ]
-            );
-        } else {
-            Statistic::where('stat', $stat)
-                ->update(['value' => $value]);
-        }
-    }
-
-
-    private function loadFile($url) {
-        $ch = curl_init();
-
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_URL, $url);
-
-        $data = curl_exec($ch);
-        curl_close($ch);
-
-        return $data;
+        return response()->json($result, $result['status'] === 'busy' ? 409 : 200);
     }
 }
