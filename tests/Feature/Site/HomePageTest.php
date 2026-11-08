@@ -7,14 +7,17 @@
 //  the last block row and hands them to welcome.blade.php:
 //  the coins mined, shortened to thousands ("tūkst.") or
 //  millions ("mln.") and as a share of 18.3 million to a
-//  tenth of a percent, the network's hash rate in H/s,
+//  tenth of a percent, with a ring around the share that
+//  fills as far as it goes, the network's hash rate in H/s,
 //  kH/s or MH/s, the difficulty grouped in thousands, and
 //  the last stored block's height and reward in LIT; on a
 //  database that holds none of them yet the page shows
 //  zeros. Around them the page offers the two wallet
 //  downloads, the Android app and the community links, and
 //  it describes itself, in Lithuanian, as the first
-//  Lithuanian cryptocurrency.
+//  Lithuanian cryptocurrency. The hint arrow at the foot of
+//  the hero has the figures' section right after it to
+//  scroll to.
 //
 //  Used by:
 //    - PHPUnit — the Feature suite (runTests.sh)
@@ -23,6 +26,8 @@
 
 namespace Tests\Feature\Site;
 
+use DOMDocument;
+use DOMXPath;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\FeatureTestCase;
 use Tests\Support\Chain;
@@ -222,6 +227,63 @@ class HomePageTest extends FeatureTestCase
 
 
     // -----------------------------------------------------------
+    // testRingTurnsAsFarAsTheShare
+    // -----------------------------------------------------------
+    //
+    // Each half of the ring around the share carries in --turn
+    // how far main.css turns it: the right half up to 180° for
+    // the first 50 %, the left half up to 180° more, and both
+    // stop at a full ring.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    #[DataProvider('ringTurns')]
+    public function testRingTurnsAsFarAsTheShare(string $mined, string $right, string $left): void
+    {
+        $page = $this->pageWith(['mined' => $mined])->getContent();
+
+        preg_match('/progress-left">\s*<span class="progress-bar" style="--turn: ([^"]*)">/', $page, $leftHalf);
+        preg_match('/progress-right">\s*<span class="progress-bar" style="--turn: ([^"]*)">/', $page, $rightHalf);
+        $this->assertSame(["{$right}deg", "{$left}deg"], [$rightHalf[1] ?? null, $leftHalf[1] ?? null]);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // ringTurns
+    // -----------------------------------------------------------
+    //
+    // Mined figures as stored, and how far the ring's right
+    // and left halves turn for them.
+    //
+    // Used by:
+    //   - testRingTurnsAsFarAsTheShare (above)
+    // -----------------------------------------------------------
+
+    public static function ringTurns(): array
+    {
+        return [
+            'nothing'            => ['0', '0', '0'],
+            'a tenth of a %'     => ['18300', '0.36', '0'],
+            'the chain on 7 Nov' => ['1678690.47', '33.12', '0'],
+            'half'               => ['9150000', '180', '0'],
+            'three quarters'     => ['13725000', '180', '90'],
+            'everything'         => ['18300000', '180', '180'],
+            'past the 18.3 mln.' => ['20000000', '180', '180'],
+        ];
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
     // testHashRateIsShownInItsUnit
     // -----------------------------------------------------------
     //
@@ -301,7 +363,7 @@ class HomePageTest extends FeatureTestCase
     //
     // The height and reward shown are the last stored row's —
     // the sync stores blocks oldest first, so it is the top
-    // block — with the reward in LIT, every digit kept.
+    // block — with the reward in LIT to the hundredth.
     //
     // Used by:
     //   - PHPUnit — the Feature suite (runTests.sh)
@@ -315,7 +377,57 @@ class HomePageTest extends FeatureTestCase
         $response = $this->get('/');
 
         $response->assertSee('Dabartinis blokų aukštis: 2499</li>', false);
-        $response->assertSee('Apdovanojimas už paskutinį bloką: ' . (Chain::reward(2499) / Chain::ATOMIC_UNITS) . ' LIT</li>', false);
+        $response->assertSee('Apdovanojimas už paskutinį bloką: ' . round(Chain::reward(2499) / Chain::ATOMIC_UNITS, 2) . ' LIT</li>', false);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testLastBlocksRewardIsRoundedToTheHundredth
+    // -----------------------------------------------------------
+    //
+    // The reward is rounded to the hundredth, not cut, and a
+    // round figure such as the 0.3 LIT tail keeps no trailing
+    // zero.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    #[DataProvider('lastRewards')]
+    public function testLastBlocksRewardIsRoundedToTheHundredth(int $amount, string $shown): void
+    {
+        $this->world->seed();
+        $this->world->block(1, $amount);
+
+        $this->get('/')->assertSee("Apdovanojimas už paskutinį bloką: $shown LIT</li>", false);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // lastRewards
+    // -----------------------------------------------------------
+    //
+    // Rewards in atomic units, and as the page shows them.
+    //
+    // Used by:
+    //   - testLastBlocksRewardIsRoundedToTheHundredth (above)
+    // -----------------------------------------------------------
+
+    public static function lastRewards(): array
+    {
+        return [
+            'a block of 8 Nov' => [15975725928504, '15.98'],
+            'the genesis'      => [17592186044415, '17.59'],
+            'the tail'         => [300000000000, '0.3'],
+        ];
     }
 
 
@@ -419,6 +531,38 @@ class HomePageTest extends FeatureTestCase
 
         $response->assertSee('<!--[if lte IE 9]><html lang="lt" class="no-js is-ie"><![endif]-->', false);
         $response->assertSee('<!--[if gt IE 8]><!--><html lang="lt" class=no-js><!--<![endif]-->', false);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testHintArrowHasASectionToScrollTo
+    // -----------------------------------------------------------
+    //
+    // Right after the hero comes the section of the figures,
+    // the one main.js scrolls to when the hint arrow at the
+    // foot of the hero is clicked; TemplatesTest holds main.js
+    // to taking the next section, whatever its class.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testHintArrowHasASectionToScrollTo(): void
+    {
+        $document = new DOMDocument();
+        $document->loadHTML($this->pageWith([])->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new DOMXPath($document);
+        $hero = $xpath->query('//div[contains(concat(" ", normalize-space(@class), " "), " level-hero ")]')->item(0);
+
+        $this->assertNotNull($hero, 'the page has no hero');
+        $this->assertSame(1, $xpath->query('.//div[contains(concat(" ", normalize-space(@class), " "), " hint-arrow ")]', $hero)->length);
+        $next = $hero->nextElementSibling;
+        $this->assertNotNull($next, 'nothing comes after the hero');
+        $this->assertSame(1, $xpath->query('.//div[contains(concat(" ", normalize-space(@class), " "), " progress ")]', $next)->length);
     }
 
 

@@ -3,14 +3,15 @@
 // -----------------------------------------------------------
 //  [*] VerifyCsrfToken — posts must carry the session's token
 //
-//  Refuses a POST, PUT, PATCH or DELETE of the web group
-//  whose CSRF token does not match the session's, with a 419
-//  page, and sets the XSRF-TOKEN cookie on every answer. The
-//  site has no form of its own, and no web route takes a
-//  post.
+//  Refuses a POST, PUT, PATCH or DELETE whose CSRF token
+//  does not match the session's, with a 419 page, and sets
+//  the XSRF-TOKEN cookie on every answer. The site has no
+//  form of its own, no route takes a post, and no route
+//  starts the session the check needs, so no middleware
+//  group lists it.
 //
 //  Used by:
-//    - Kernel (app/Http) — the web group
+//    - nothing at the moment
 // -----------------------------------------------------------
 
 

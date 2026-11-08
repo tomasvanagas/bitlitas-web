@@ -2858,7 +2858,7 @@ ol.tos li {
 	border-color: #1abc9c;
 }
 .progress.green .progress-left .progress-bar{
-	animation: loading-5 1.2s linear forwards 1.8s;
+	animation: ring-turn 1.2s linear forwards 1.8s;
 }
 @keyframes loading-1{
 	0%{
@@ -2972,7 +2972,7 @@ ol.tos li {
 	border-right: 0;
 	-webkit-transform-origin: center right;
 	transform-origin: center right;
-	animation: loading-4 1.8s linear forwards;
+	animation: ring-turn 1.8s linear forwards;
 }
 .progress .progress-value{
 	width: 90%;
@@ -2991,7 +2991,7 @@ ol.tos li {
 	border-color: #499149;
 }
 .progress.green .progress-left .progress-bar{
-	animation: loading-5 1.2s linear forwards 1.8s;
+	animation: ring-turn 1.2s linear forwards 1.8s;
 }
 @keyframes loading-1{
 	0%{
@@ -3045,6 +3045,20 @@ ol.tos li {
 }
 @media only screen and (max-width: 990px){
 	.progress{ margin-bottom: 20px; }
+}
+
+/* The ring around the mined share: each half's bar turns as
+   far as the page sets its --turn, the left one after the
+   right one is done */
+@keyframes ring-turn{
+	0%{
+		-webkit-transform: rotate(0deg);
+		transform: rotate(0deg);
+	}
+	100%{
+		-webkit-transform: rotate(var(--turn, 0deg));
+		transform: rotate(var(--turn, 0deg));
+	}
 }
 
 .fs-35 {

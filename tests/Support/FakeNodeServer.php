@@ -4,7 +4,7 @@
 //  [*] FakeNodeServer — steers the stand-in node over HTTP
 //
 //  The test side of tests/container/fake-node.php, the node
-//  run.sh starts on 127.0.0.1:18081 for the site and for
+//  run.sh starts on 127.0.0.1:18281 for the site and for
 //  DaemonClientTest: a test writes the node's state to
 //  /tmp/fake-node/state.json and reads back every request
 //  the node logged to /tmp/fake-node/requests.jsonl. Both
@@ -49,7 +49,7 @@ class FakeNodeServer
 
     // Where run.sh starts the node, and the folder it shares
     // with the tests
-    public const URL = 'http://127.0.0.1:18081';
+    public const URL = 'http://127.0.0.1:18281';
     private const DIR = '/tmp/fake-node';
 
 

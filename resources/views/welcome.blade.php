@@ -47,11 +47,11 @@
             <div class="row">
                 <div class="col-sm-4 col-xs-12">
                     <div class="progress green">
-                        {{--<span class="progress-left">--}}
-                        {{--<span class="progress-bar"></span>--}}
-                        {{--</span>--}}
+                        <span class="progress-left">
+                            <span class="progress-bar" style="--turn: {{ $ringLeft }}deg"></span>
+                        </span>
                         <span class="progress-right">
-                            <span class="progress-bar"></span>
+                            <span class="progress-bar" style="--turn: {{ $ringRight }}deg"></span>
                         </span>
 
                         <div class="progress-value">{{ $moneyPercent }} %</div>

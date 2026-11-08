@@ -4,10 +4,11 @@
 //  [*] fake-node.php — the full node's stand-in, over HTTP
 //
 //  The router script PHP's built-in server runs on
-//  127.0.0.1:18081, where BITLITAS_DAEMON_URL points in the
-//  test container: the address bitlitas-exit forwards to
-//  the real node in production. POST /json_rpc is answered
-//  by NodeEmulator from the state the tests wrote to
+//  127.0.0.1:18281, where BITLITAS_DAEMON_URL points in the
+//  test container: the port bitlitas-exit forwards to the
+//  real v0.18 node in production. POST /json_rpc and POST
+//  /get_transactions are answered by NodeEmulator from the
+//  state the tests wrote to
 //  /tmp/fake-node/state.json, and the state goes back to
 //  the file afterwards — the counters of the calls, and the
 //  height when the chain grows on every get_info. With a
@@ -55,10 +56,12 @@ file_put_contents(REQUESTS, json_encode([
 ]) . "\n", FILE_APPEND);
 
 
-// STEP 2: anything but POST /json_rpc is not found, as on
-// the real node
-// =======================================================
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) !== '/json_rpc') {
+// STEP 2: anything but a POST of the two paths the app
+// calls is not found here
+// ====================================================
+$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !in_array($path, ['/json_rpc', '/get_transactions'], true)) {
     http_response_code(404);
     return true;
 }
@@ -79,7 +82,7 @@ if (!empty($state['login']) && !digestAnswered($authorization, $state['login']))
 // the next request
 // =======================================================
 $node = new NodeEmulator($state);
-list($status, $answer) = $node->answer($body);
+list($status, $answer) = $node->answer($body, $path);
 file_put_contents(STATE, json_encode($node->state));
 
 http_response_code($status);

@@ -10,8 +10,8 @@
 //  a path that climbs out of the root is refused. PHP runs
 //  only from .php files — a picture asked for as a script
 //  is never run — and neither Apache nor PHP names its
-//  version. The cookies the site sets are Secure, so a
-//  browser never gives them out over plain HTTP.
+//  version. The site sets no cookie and starts no session,
+//  so a visit leaves nothing behind on the server either.
 //
 //  Used by:
 //    - PHPUnit — the Server suite (runTests.sh)
@@ -180,26 +180,70 @@ class ProtectionTest extends ServerTestCase
 
 
     // -----------------------------------------------------------
-    // testCookiesAreSecure
+    // testSiteSetsNoCookie
     // -----------------------------------------------------------
     //
-    // Every cookie the page sets — the session and the XSRF
-    // token — is Secure, so a browser never sends it over
-    // plain HTTP.
+    // Neither the home page nor /blokai sets a cookie: the
+    // site keeps no session, so there is no session cookie
+    // and no XSRF token to give out.
     //
     // Used by:
     //   - PHPUnit — the Server suite (runTests.sh)
     // -----------------------------------------------------------
 
-    public function testCookiesAreSecure(): void
+    public function testSiteSetsNoCookie(): void
     {
         $this->world->seed();
 
-        $cookies = $this->http->get('/')->cookies();
+        $this->assertSame([], $this->http->get('/')->cookies());
+        $this->assertSame([], $this->http->get('/blokai')->cookies());
+    }
 
-        $this->assertEqualsCanonicalizing(['XSRF-TOKEN', 'bitlitas_session'], array_keys($cookies));
-        foreach ($cookies as $name => $cookie) {
-            $this->assertArrayHasKey('secure', $cookie['attributes'], "$name is not Secure");
-        }
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testVisitLeavesNoSessionBehind
+    // -----------------------------------------------------------
+    //
+    // A visit without a cookie writes no session file to
+    // storage/framework/sessions, a tmpfs held in RAM, so a
+    // crawler or a flood of cookie-less visits cannot fill it.
+    //
+    // Used by:
+    //   - PHPUnit — the Server suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testVisitLeavesNoSessionBehind(): void
+    {
+        $this->world->seed();
+        $before = $this->sessionFiles();
+
+        $this->assertSame(200, $this->http->get('/')->status);
+
+        $this->assertSame([], array_values(array_diff($this->sessionFiles(), $before)));
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // sessionFiles
+    // -----------------------------------------------------------
+    //
+    // The names of the files in storage/framework/sessions,
+    // where Apache's PHP would keep a session it started.
+    //
+    // Used by:
+    //   - testVisitLeavesNoSessionBehind (above)
+    // -----------------------------------------------------------
+
+    private function sessionFiles(): array
+    {
+        return array_map('basename', glob(storage_path('framework/sessions') . '/*') ?: []);
     }
 }

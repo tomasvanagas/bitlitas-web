@@ -1,22 +1,21 @@
 <?php
 
 // -----------------------------------------------------------
-//  [*] session — the session every page view starts
+//  [*] session — the session a route could start
 //
-//  The web middleware group starts a session for every
-//  visitor, kept for two hours in files under
-//  storage/framework/sessions, and identified by the
-//  bitlitas_session cookie — the app's name as a slug. The
-//  site stores nothing in it; the session exists because the
-//  web group, CSRF tokens included, needs one. The site is
-//  served over HTTPS only, so the session and XSRF cookies
-//  are marked Secure unless SESSION_SECURE_COOKIE says
-//  otherwise, and a browser never sends them over plain
-//  HTTP.
+//  No route starts a session: the site has no form and
+//  keeps nothing in one, so the web middleware group
+//  carries no session middleware (app/Http/Kernel.php).
+//  These are the settings a session would have — two hours
+//  in files under storage/framework/sessions, behind the
+//  bitlitas_session cookie, the app's name as a slug — with
+//  its cookies marked Secure unless SESSION_SECURE_COOKIE
+//  says otherwise, since the site is served over HTTPS only.
 //
 //  Used by:
 //    - Laravel's configuration — read as config('session.…')
-//      by StartSession and VerifyCsrfToken
+//      by the session manager, which nothing calls at the
+//      moment
 // -----------------------------------------------------------
 
 

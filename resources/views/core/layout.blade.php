@@ -9,7 +9,7 @@
 
     <title>BitLitas - Lietuviška kriptovaliuta</title>
 
-    <link rel=stylesheet href="css/main.css?v=1.1">
+    <link rel=stylesheet href="css/main.css?v=1.2">
     <!--[if lte IE 8]>
     <link rel=stylesheet href="css/ie.css">
     <![endif]-->
@@ -18,6 +18,7 @@
     <script src="js/lib/respond-1.4.2.min.js"></script>
 
     <link rel='shortcut icon' type='image/x-icon' href='img/favicon/icon.ico' />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
     <meta property="og:url"                content="https://bitlitas.lt" />
     <meta property="og:type"               content="website" />

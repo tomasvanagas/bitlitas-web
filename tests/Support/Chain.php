@@ -3,7 +3,7 @@
 // -----------------------------------------------------------
 //  [*] Chain — the blocks of the chain the stand-in node has
 //
-//  A chain built the way bitlitasd v0.11 builds its own, so
+//  A chain built the way bitlitasd builds its own, so
 //  the figures the app works out are the real kind: block 0
 //  pays GENESIS_TX's 17.592186044415 LIT, every later block
 //  pays the emission curve of cryptonote_config.h for
@@ -11,7 +11,7 @@
 //  under the 0.3 LIT tail — and the blocks are a minute
 //  apart from 2018-01-15 22:33:55 UTC, when block 1 was
 //  mined. Its headers carry every field get_block_headers_range
-//  answers with on a v0.11 node.
+//  answers with on a v0.18 node.
 //
 //  Used by:
 //    - NodeEmulator (this folder) — the headers it answers with
@@ -155,29 +155,66 @@ class Chain
     // -----------------------------------------------------------
     //
     // Block h of a chain whose top block is $top, with the
-    // fields of v0.11's block_header_response.
+    // fields of v0.18's block_header_response, holding no
+    // transaction but its miner's.
     //
     // Used by:
     //   - headers (below)
+    //   - NodeEmulator::block (this folder)
     // -----------------------------------------------------------
 
     public static function header(int $height, int $top): array
     {
+        $difficulty = $height === 0 ? 1 : self::DIFFICULTY;
+        $cumulative = 1 + self::DIFFICULTY * $height;
+
         return [
-            'major_version' => 1,
-            'minor_version' => 0,
-            'timestamp'     => self::timestamp($height),
-            'prev_hash'     => $height === 0 ? str_repeat('0', 64) : self::hash($height - 1),
-            'nonce'         => $height === 0 ? 10000 : $height,
-            'orphan_status' => false,
-            'height'        => $height,
-            'depth'         => $top - $height,
-            'hash'          => self::hash($height),
-            'difficulty'    => $height === 0 ? 1 : self::DIFFICULTY,
-            'reward'        => self::reward($height),
-            'block_size'    => 80,
-            'num_txes'      => 0,
+            'major_version'               => 1,
+            'minor_version'               => 0,
+            'timestamp'                   => self::timestamp($height),
+            'prev_hash'                   => $height === 0 ? str_repeat('0', 64) : self::hash($height - 1),
+            'nonce'                       => $height === 0 ? 10000 : $height,
+            'orphan_status'               => false,
+            'height'                      => $height,
+            'depth'                       => $top - $height,
+            'hash'                        => self::hash($height),
+            'difficulty'                  => $difficulty,
+            'wide_difficulty'             => '0x' . dechex($difficulty),
+            'difficulty_top64'            => 0,
+            'cumulative_difficulty'       => $cumulative,
+            'wide_cumulative_difficulty'  => '0x' . dechex($cumulative),
+            'cumulative_difficulty_top64' => 0,
+            'reward'                      => self::reward($height),
+            'block_size'                  => 80,
+            'block_weight'                => 80,
+            'num_txes'                    => 0,
+            'pow_hash'                    => '',
+            'long_term_weight'            => 80,
+            'miner_tx_hash'               => hash('sha256', "bitlitas test miner transaction $height"),
         ];
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // txHash
+    // -----------------------------------------------------------
+    //
+    // The hash of transaction $index of block $height, made up
+    // and unique.
+    //
+    // Used by:
+    //   - NodeEmulator (this folder)
+    //   - the Feature suite — the transactions it expects asked
+    //     for
+    // -----------------------------------------------------------
+
+    public static function txHash(int $height, int $index): string
+    {
+        return hash('sha256', "bitlitas test transaction $height $index");
     }
 
 

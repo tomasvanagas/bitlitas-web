@@ -176,6 +176,7 @@ class FrontControllerTest extends ServerTestCase
             'the background'     => ['/img/bg-default.jpg', 'image/jpeg'],
             'the tab icon'       => ['/img/favicon/icon.ico', 'image/vnd.microsoft.icon'],
             'the root icon'      => ['/favicon.ico', 'image/vnd.microsoft.icon'],
+            'the touch icon'     => ['/apple-touch-icon.png', 'image/png'],
             'the film, webm'     => ['/video/bitlitas.webm', 'video/webm'],
             'the film, mp4'      => ['/video/bitlitas.mp4', 'video/mp4'],
             'the Linux wallet'   => ['/downloads/v1/bitlitas.tar.gz', 'application/x-gzip'],

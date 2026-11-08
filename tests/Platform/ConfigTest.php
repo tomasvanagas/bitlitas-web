@@ -243,8 +243,9 @@ class ConfigTest extends TestCase
     // testNodeSettingsDefaultToALocalNode
     // -----------------------------------------------------------
     //
-    // Without the variables, the address is bitlitasd's own
-    // default RPC address, and there is no login.
+    // Without the variables, the address is a v0.18
+    // bitlitasd's own default RPC address, and there is no
+    // login.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
@@ -254,8 +255,32 @@ class ConfigTest extends TestCase
     {
         $services = $this->withoutEnv(['BITLITAS_DAEMON_URL', 'BITLITAS_DAEMON_LOGIN'], 'services.php');
 
-        $this->assertSame('http://127.0.0.1:18081', $services['bitlitas']['daemon_url']);
+        $this->assertSame('http://127.0.0.1:18281', $services['bitlitas']['daemon_url']);
         $this->assertNull($services['bitlitas']['daemon_login']);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testSessionCookiesWouldBeSecure
+    // -----------------------------------------------------------
+    //
+    // No route starts a session, but one that did would mark
+    // its cookies Secure without SESSION_SECURE_COOKIE: the
+    // site is served over HTTPS only.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testSessionCookiesWouldBeSecure(): void
+    {
+        $session = $this->withoutEnv(['SESSION_SECURE_COOKIE'], 'session.php');
+
+        $this->assertTrue($session['secure']);
     }
 
 
@@ -349,6 +374,7 @@ class ConfigTest extends TestCase
     // Used by:
     //   - testDebugStaysOffWithoutAppDebug (above)
     //   - testNodeSettingsDefaultToALocalNode (above)
+    //   - testSessionCookiesWouldBeSecure (above)
     // -----------------------------------------------------------
 
     public static function withoutEnv(array $names, string $file): array

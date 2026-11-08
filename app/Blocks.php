@@ -4,8 +4,9 @@
 //  [*] Blocks — one row per block the sync stored
 //
 //  The Eloquent model of the blocks table: a block's height,
-//  its time and the reward its miner received in atomic units
-//  (a LIT is 10^12 of them). NetworkSync fills it from the
+//  its time, the reward its miner received in atomic units
+//  (a LIT is 10^12 of them) and the part of that reward its
+//  transactions paid in fees. NetworkSync fills it from the
 //  full node, oldest block first, so the row with the highest
 //  id is the top block the home page shows; the table keeps
 //  no hashes and no key on the height.
@@ -44,8 +45,8 @@ class Blocks extends Model
 {
 
     // The columns create() may fill: the block's height, its
-    // reward in atomic units and its time
+    // reward and fees in atomic units, and its time
     protected $fillable = [
-        'block_height', 'amount', 'timestamp'
+        'block_height', 'amount', 'fees', 'timestamp'
     ];
 }

@@ -6,13 +6,16 @@
 //  NetworkSync asks the node for get_info, stores the blocks
 //  the table lacks, oldest first, from the headers of
 //  get_block_headers_range — a thousand per call, the most a
-//  restricted v0.18 node gives — and recomputes the three
-//  figures of the home page. It resumes after the last
-//  stored block, swaps seedDB.sh's stand-in block 0 for the
-//  real one, checks that the node sent exactly the blocks it
-//  asked for before it stores a batch, and keeps the batches
-//  stored before a failure. A lock file keeps two syncs from
-//  storing the same blocks twice.
+//  restricted v0.18 node gives — each with the fees of its
+//  transactions, and recomputes the three figures of the
+//  home page, the mined coins without the fees. It fills in
+//  the fees of rows stored without them, resumes after the
+//  last stored block, swaps seedDB.sh's stand-in block 0 for
+//  the real one, checks that the node sent exactly the
+//  blocks it asked for before it stores a batch, keeps the
+//  batches stored before a failure, and reports a node lower
+//  than the table as behind, changing nothing. A lock file
+//  keeps two syncs from storing the same blocks twice.
 //
 //  Used by:
 //    - PHPUnit — the Feature suite (runTests.sh)
@@ -201,6 +204,7 @@ class NetworkSyncTest extends FeatureTestCase
         $this->assertSame([
             'status'            => 'ok',
             'fetched'           => 1200,
+            'filled'            => 0,
             'last_stored_block' => 1199,
             'node_top_block'    => 2499,
             'remaining'         => 1300,
@@ -414,27 +418,193 @@ class NetworkSyncTest extends FeatureTestCase
 
 
     // -----------------------------------------------------------
-    // testNodeBehindTheTableTakesNothingAway
+    // testMinedCountsOnlyNewCoins
     // -----------------------------------------------------------
     //
-    // A node lower than the table — resyncing, or another
-    // node — gets nothing asked of it beyond get_info, and
-    // the stored blocks stay.
+    // The mined figure counts the coins the chain has made and
+    // no fee, since a fee moves coins that already existed. The
+    // node reports a block's reward as its miner's take, new
+    // coins and fees together: two blocks here hold
+    // transactions that paid 0.25 and 0.12 LIT, and the figure
+    // leaves those 0.37 LIT out.
     //
     // Used by:
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    public function testNodeBehindTheTableTakesNothingAway(): void
+    public function testMinedCountsOnlyNewCoins(): void
     {
-        $this->world->chain(0, 2499);
-        $daemon = $this->fakeDaemon(['height' => 1000]);
+        $this->fakeDaemon(['height' => 10, 'fees' => [4 => 250000000000, 7 => 120000000000]]);
 
         $result = $this->sync()->run();
 
+        $this->assertSame($this->mined(0, 9), $result['mined']);
+        $this->assertSame((string) $this->mined(0, 9), $this->world->statistic('mined'));
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testFeesComeFromTheBlocksTransactions
+    // -----------------------------------------------------------
+    //
+    // A block whose header counts transactions has their
+    // hashes asked of get_block, and the batch's fees of
+    // get_transactions in one call; each row stores its
+    // reward as the node gave it and the fees beside it. A
+    // block without transactions costs no call and stores no
+    // fees.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testFeesComeFromTheBlocksTransactions(): void
+    {
+        $daemon = $this->fakeDaemon(['height' => 10, 'fees' => [4 => 250000000000, 7 => [100000000000, 20000000000]]]);
+
+        $this->sync()->run();
+
+        $this->assertSame(['get_info', 'get_block_headers_range', 'get_block', 'get_block'], $daemon->methods());
+        $this->assertSame([[Chain::txHash(4, 0), Chain::txHash(7, 0), Chain::txHash(7, 1)]], $daemon->transactions());
+        $rows = Blocks::orderBy('block_height')->get(['block_height', 'amount', 'fees'])->keyBy('block_height');
+        $this->assertSame([Chain::reward(4) + 250000000000, 250000000000], [(int) $rows[4]->amount, (int) $rows[4]->fees]);
+        $this->assertSame([Chain::reward(7) + 120000000000, 120000000000], [(int) $rows[7]->amount, (int) $rows[7]->fees]);
+        $this->assertSame([Chain::reward(5), 0], [(int) $rows[5]->amount, (int) $rows[5]->fees]);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testBlockWhoseTransactionsDisagreeStoresNothing
+    // -----------------------------------------------------------
+    //
+    // A block whose get_block lists another number of
+    // transactions than its header counts fails the run, and
+    // nothing of its batch is stored.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testBlockWhoseTransactionsDisagreeStoresNothing(): void
+    {
+        $this->fakeDaemon(['height' => 10, 'fees' => [4 => 250000000000], 'corrupt' => 'extra-tx']);
+
+        $failure = $this->failedRun();
+
+        $this->assertSame('get_block: block 4 lists 1 transactions, its header 2', $failure->getMessage());
+        $this->assertSame([], $this->world->heights());
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testRowsStoredWithoutFeesGetThem
+    // -----------------------------------------------------------
+    //
+    // Rows stored before the table had a fees column get their
+    // fees from the node, oldest first, a thousand headers a
+    // call; then the mined figure counts the coins made alone,
+    // and the run reports how many rows it filled.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testRowsStoredWithoutFeesGetThem(): void
+    {
+        $this->world->chain(0, 2499, false);
+        Blocks::where('block_height', 10)->update(['amount' => Chain::reward(10) + 100000000000]);
+        Blocks::where('block_height', 2000)->update(['amount' => Chain::reward(2000) + 200000000000]);
+        $daemon = $this->fakeDaemon(['height' => 2500, 'fees' => [10 => 100000000000, 2000 => 200000000000]]);
+
+        $result = $this->sync()->run();
+
+        $this->assertSame([0, 2500, 0], [$result['fetched'], $result['filled'], $result['remaining']]);
+        $this->assertSame([[0, 999], [1000, 1999], [2000, 2499]], $daemon->ranges());
+        $this->assertSame(0, Blocks::whereNull('fees')->count());
+        $this->assertSame([100000000000, 200000000000], array_map('intval', Blocks::where('fees', '>', 0)->orderBy('block_height')->pluck('fees')->all()));
+        $this->assertSame((string) $this->mined(0, 2499), $this->world->statistic('mined'));
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testFillingFeesSharesTheRunsLimit
+    // -----------------------------------------------------------
+    //
+    // A limited run fills in rows first and stores new blocks
+    // with what is left of its limit; what it leaves for later
+    // counts in remaining, both kinds together.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testFillingFeesSharesTheRunsLimit(): void
+    {
+        $this->world->chain(0, 999, false);
+        $this->fakeDaemon(['height' => 2500]);
+
+        $first = $this->sync()->run(600);
+        $second = $this->sync()->run(600);
+
+        $this->assertSame([0, 600, 1900], [$first['fetched'], $first['filled'], $first['remaining']]);
+        $this->assertSame([200, 400, 1300], [$second['fetched'], $second['filled'], $second['remaining']]);
+        $this->assertSame(range(0, 1199), $this->world->heights());
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testNodeBehindTheTableIsReported
+    // -----------------------------------------------------------
+    //
+    // A node lower than the table — resyncing, or another
+    // node — is reported as behind and changes nothing: it
+    // gets nothing asked of it beyond get_info, the stored
+    // blocks stay, and so do the figures of the chain the
+    // table holds, rather than the lagging node's.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testNodeBehindTheTableIsReported(): void
+    {
+        $this->world->chain(0, 2499);
+        $this->world->statistics(['hash_rate' => '19', 'difficulty' => '1160']);
+        $daemon = $this->fakeDaemon(['height' => 1000, 'difficulty' => 300000, 'target' => 60]);
+
+        $result = $this->sync()->run();
+
+        $this->assertSame([
+            'status'            => 'behind',
+            'fetched'           => 0,
+            'filled'            => 0,
+            'last_stored_block' => 2499,
+            'node_top_block'    => 999,
+            'remaining'         => 0,
+        ], $result);
         $this->assertSame(['get_info'], $daemon->methods());
-        $this->assertSame([0, 2499, 999, 0], [$result['fetched'], $result['last_stored_block'], $result['node_top_block'], $result['remaining']]);
         $this->assertCount(2500, $this->world->heights());
+        $this->assertSame(['19', '1160'], [$this->world->statistic('hash_rate'), $this->world->statistic('difficulty')]);
     }
 
 
@@ -520,6 +690,7 @@ class NetworkSyncTest extends FeatureTestCase
             'no reward'      => ['no-reward'],
             'no time'        => ['no-timestamp'],
             'no height'      => ['no-height'],
+            'no tx count'    => ['no-num-txes'],
         ];
     }
 

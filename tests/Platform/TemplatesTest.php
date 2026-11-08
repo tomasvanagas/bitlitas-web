@@ -15,9 +15,12 @@
 //  cannot be copied, Facebook's page widget. The downloads
 //  are the 2018 v1.0.2 wallets: a tarball holding bitlitasd
 //  and the GUI wallet, and a Windows executable. The
-//  background film is muted, so a browser lets it start;
-//  every picture has an alt; and the root favicon.ico is the
-//  page's icon.
+//  background film is muted, so a browser lets it start,
+//  and starts again when the back button brings the page
+//  back; every picture has an alt; the ring around the
+//  mined share turns as far as the template says; the hint
+//  arrow scrolls to the section after the hero; and the
+//  root favicon.ico is the page's icon.
 //
 //  Used by:
 //    - PHPUnit — the Platform suite (runTests.sh)
@@ -58,8 +61,9 @@ class TemplatesTest extends TestCase
     // templates write it; a new link must be added here
     private const LINKED = [
         '/img/google-play-badge.png',
+        'apple-touch-icon.png',
         'css/ie.css',
-        'css/main.css?v=1.1',
+        'css/main.css?v=1.2',
         'downloads/v1/bitlitas.exe',
         'downloads/v1/bitlitas.tar.gz',
         'img/favicon/icon.ico',
@@ -72,7 +76,7 @@ class TemplatesTest extends TestCase
         'js/lib/jquery-3.7.1.min.js',
         'js/lib/modernizr-2.8.3.min.js',
         'js/lib/respond-1.4.2.min.js',
-        'js/main.js',
+        'js/main.js?v=3',
         'video/bitlitas.mp4',
         'video/bitlitas.webm',
     ];
@@ -222,6 +226,35 @@ class TemplatesTest extends TestCase
 
 
     // -----------------------------------------------------------
+    // testNoFileNamesAMissingSourceMap
+    // -----------------------------------------------------------
+    //
+    // No stylesheet or script of the site names a source map:
+    // none ships, and a browser's developer tools would ask
+    // for it and log the 404.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testNoFileNamesAMissingSourceMap(): void
+    {
+        $named = [];
+        foreach (array_merge(glob(public_path('css/*.css')), glob(public_path('js/*.js')), glob(public_path('js/lib/*.js'))) as $path) {
+            if (strpos(file_get_contents($path), 'sourceMappingURL') !== false) {
+                $named[] = basename($path);
+            }
+        }
+
+        $this->assertSame([], $named);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
     // testStylesheetsLoadNothingFromOutside
     // -----------------------------------------------------------
     //
@@ -305,6 +338,38 @@ class TemplatesTest extends TestCase
 
 
     // -----------------------------------------------------------
+    // testFilmStartsAgainWhenThePageComesBack
+    // -----------------------------------------------------------
+    //
+    // A page the browser restores from its back/forward cache
+    // runs no script again, and the browser paused the film
+    // when the page was left: main.js plays it again on a
+    // pageshow that says the page was restored, as long as
+    // the film is still on the page — at once, and again when
+    // the film can play, since Safari reloads a film whose
+    // loading leaving cut short and so aborts the first play.
+    // A play cut short is caught, not left to the console as
+    // an unhandled rejection.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testFilmStartsAgainWhenThePageComesBack(): void
+    {
+        $script = file_get_contents(public_path('js/main.js'));
+
+        $this->assertMatchesRegularExpression("/window\\.addEventListener\\('pageshow', function \\( event \\) \\{\\s*if \\( event\\.persisted && videoBgEle && document\\.body\\.contains\\( videoBgEle \\) \\) \\{\\s*videoBgEle\\.addEventListener\\('canplay', playFilm, \\{ once: true \\}\\);\\s*playFilm\\(\\);/", $script);
+        $this->assertMatchesRegularExpression('/function playFilm\\(\\) \\{\\s*var playing = videoBgEle\\.play\\(\\);\\s*if \\( playing && playing\\.catch \\) \\{\\s*playing\\.catch\\( function \\(\\) \\{\\} \\);/', $script);
+        $this->assertSame(1, substr_count($script, 'videoBgEle.play()'), 'the film is played other than through playFilm');
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
     // testEveryPictureHasAnAlt
     // -----------------------------------------------------------
     //
@@ -332,12 +397,74 @@ class TemplatesTest extends TestCase
 
 
     // -----------------------------------------------------------
+    // testRingTurnsAsTheTemplateSays
+    // -----------------------------------------------------------
+    //
+    // Both halves of the ring around the mined share animate
+    // to ring-turn, which turns a bar as far as the --turn the
+    // template sets on it — the left half once the right one
+    // is done — and no rule turns the right half a fixed
+    // angle.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testRingTurnsAsTheTemplateSays(): void
+    {
+        $css = file_get_contents(public_path('css/main.css'));
+        preg_match_all('/\.progress(?:\.green)? \.progress-(left|right) \.progress-bar\{[^}]*animation: ([^;]*);/', $css, $rules, PREG_SET_ORDER);
+        $last = [];
+        foreach ($rules as $rule) {
+            $last[$rule[1]] = $rule[2];
+        }
+
+        $this->assertSame(['right' => 'ring-turn 1.8s linear forwards', 'left' => 'ring-turn 1.2s linear forwards 1.8s'], $last);
+        $this->assertMatchesRegularExpression('/@keyframes ring-turn\{.*?100%\{[^}]*transform: rotate\(var\(--turn, 0deg\)\);/s', $css);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testHintArrowScrollsToTheNextSection
+    // -----------------------------------------------------------
+    //
+    // main.js scrolls the hint arrow's click to the section
+    // right after the hero, whatever its class, and only when
+    // there is one: the section after the hero is no .level,
+    // and an empty set has no offset to read.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testHintArrowScrollsToTheNextSection(): void
+    {
+        $script = file_get_contents(public_path('js/main.js'));
+
+        $this->assertStringContainsString('var $nextLevel = $parentLevel.next();', $script);
+        $this->assertStringContainsString('if ( $nextLevel.length ) {', $script);
+        $this->assertStringNotContainsString(".next('.level')", $script);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
     // testRootIconIsTheSitesIcon
     // -----------------------------------------------------------
     //
     // favicon.ico at the root, which a browser asks for on any
     // answer that names no icon of its own — an error page,
-    // the JSON of /blokai — is the icon the page names.
+    // the JSON of /blokai — is the icon the page names; and
+    // apple-touch-icon.png, the icon Safari and iOS show for
+    // the site, which the page names too, is the coin of the
+    // logo.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
@@ -346,6 +473,7 @@ class TemplatesTest extends TestCase
     public function testRootIconIsTheSitesIcon(): void
     {
         $this->assertFileEquals(public_path('img/favicon/icon.ico'), public_path('favicon.ico'));
+        $this->assertFileEquals(public_path('img/logo.png'), public_path('apple-touch-icon.png'));
     }
 
 

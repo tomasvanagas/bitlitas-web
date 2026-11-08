@@ -5,10 +5,13 @@
 //
 //  The command line's sync, for the first catch-up and for a
 //  cron: it runs syncs of 10,000 blocks until the node's top
-//  block is stored, printing where each one got to, then the
-//  three figures. It exits 0 when it got there, and 1 with
-//  the reason when the node failed or another sync holds the
-//  lock.
+//  block is stored, printing where each one got to and how
+//  many stored rows got their fees, then the three figures.
+//  It exits 0 when it got there, and 1 with the reason when
+//  the node failed, when the node is behind the table or
+//  when another sync holds the lock. Beside it,
+//  bitlitas:prune-cache removes the file cache's expired
+//  entries.
 //
 //  Used by:
 //    - PHPUnit — the Feature suite (runTests.sh)
@@ -18,6 +21,7 @@
 namespace Tests\Feature\Sync;
 
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Cache;
 use Tests\FeatureTestCase;
 use Tests\Support\Chain;
 
@@ -156,7 +160,7 @@ class SyncCommandTest extends FeatureTestCase
         list($code, $lines) = $this->command();
 
         $this->assertSame(1, $code);
-        $this->assertStringStartsWith('cannot reach the node at http://bitlitas-exit:18081/json_rpc', $lines[0]);
+        $this->assertStringStartsWith('cannot reach the node at http://bitlitas-exit:18281/json_rpc', $lines[0]);
     }
 
 
@@ -195,7 +199,8 @@ class SyncCommandTest extends FeatureTestCase
     // testCommandIsListedWithItsPurpose
     // -----------------------------------------------------------
     //
-    // artisan lists bitlitas:sync with what it does.
+    // artisan lists bitlitas:sync and bitlitas:prune-cache,
+    // each with what it does.
     //
     // Used by:
     //   - PHPUnit — the Feature suite (runTests.sh)
@@ -207,6 +212,99 @@ class SyncCommandTest extends FeatureTestCase
 
         $this->assertArrayHasKey('bitlitas:sync', $commands);
         $this->assertSame('Copy new blocks and network statistics from the full node', $commands['bitlitas:sync']->getDescription());
+        $this->assertSame('Remove the expired entries of the file cache', $commands['bitlitas:prune-cache']->getDescription());
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testCommandFillsInFeesThenStores
+    // -----------------------------------------------------------
+    //
+    // Rows stored without fees get them before the new blocks
+    // are stored, and a line says how many.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testCommandFillsInFeesThenStores(): void
+    {
+        $this->world->chain(0, 1499, false);
+        $this->fakeDaemon(['height' => 2500]);
+
+        list($code, $lines) = $this->command();
+
+        $this->assertSame(0, $code);
+        $this->assertSame(['Filled in the fees of 1500 stored blocks', 'Stored up to block 2499 of 2499'], array_slice($lines, 0, 2));
+        $this->assertStringStartsWith('Mined: ', $lines[2]);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testNodeBehindTheTableExitsWithOne
+    // -----------------------------------------------------------
+    //
+    // A node lower than the table ends the command with exit
+    // code 1 and a line saying where both stand.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testNodeBehindTheTableExitsWithOne(): void
+    {
+        $this->world->chain(0, 2499);
+        $this->fakeDaemon(['height' => 1000]);
+
+        $this->assertSame([1, ['The node is behind the table: its top block is 999, the table holds blocks up to 2499']], $this->command());
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testPruneRemovesOnlyExpiredCacheEntries
+    // -----------------------------------------------------------
+    //
+    // bitlitas:prune-cache deletes an entry of the file cache
+    // whose time has run out, and leaves one still running and
+    // one kept forever.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testPruneRemovesOnlyExpiredCacheEntries(): void
+    {
+        $file = Cache::store('file');
+        $file->put('prune-test-running', 1, 600);
+        $file->forever('prune-test-forever', 1);
+        $stale = config('cache.stores.file.path') . '/zz/zz/prune-test-stale';
+        @mkdir(dirname($stale), 0777, true);
+        file_put_contents($stale, (time() - 60) . serialize(1));
+
+        try {
+            list($code, $lines) = $this->console('bitlitas:prune-cache');
+
+            $this->assertSame(0, $code);
+            $this->assertMatchesRegularExpression('/^Removed [1-9]\d* expired cache entries$/', $lines[0]);
+            $this->assertFileDoesNotExist($stale);
+            $this->assertSame([1, 1], [$file->get('prune-test-running'), $file->get('prune-test-forever')]);
+        } finally {
+            $file->forget('prune-test-running');
+            $file->forget('prune-test-forever');
+            @unlink($stale);
+        }
     }
 
 

@@ -4,9 +4,13 @@
 //  [*] DaemonClientTest — the app's client for bitlitasd
 //
 //  DaemonClient over real HTTP, against the stand-in node on
-//  127.0.0.1:18081 (tests/container/fake-node.php): every
+//  127.0.0.1:18281 (tests/container/fake-node.php): every
 //  call is a JSON-RPC POST to /json_rpc with its params as
-//  a JSON object, heights sent as numbers. With a login it
+//  a JSON object, heights sent as numbers, but for the fees
+//  of transactions, a plain JSON POST to /get_transactions,
+//  a hundred at a time, the most a restricted node gives;
+//  a fee is read from a transaction before RingCT and from
+//  one with it. With a login it
 //  answers the node's HTTP digest challenge, as bitlitasd's
 //  --rpc-login asks. Every way a call can fail — no
 //  connection, a refused login, an HTTP error, an answer that
@@ -26,6 +30,7 @@ use App\Services\DaemonClient;
 use App\Services\DaemonException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\FeatureTestCase;
+use Tests\Support\Chain;
 use Tests\Support\FakeNodeServer;
 
 
@@ -536,6 +541,145 @@ class DaemonClientTest extends FeatureTestCase
         $this->assertSame($client, $this->app->make(DaemonClient::class));
         $this->assertSame(2500, $client->getInfo()['height']);
         $this->assertCount(1, FakeNodeServer::requests());
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testBlockTransactionsComeFromGetBlock
+    // -----------------------------------------------------------
+    //
+    // getBlockTransactions asks get_block for the height, as
+    // a number, and returns the hashes of the block's
+    // transactions — none for a block the node lists none for.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testBlockTransactionsComeFromGetBlock(): void
+    {
+        FakeNodeServer::configure(['height' => 10, 'fees' => [4 => 250000000000, 7 => [100000000000, 20000000000]]]);
+        $client = $this->client();
+
+        $this->assertSame([Chain::txHash(4, 0)], $client->getBlockTransactions('4'));
+        $this->assertSame([], $client->getBlockTransactions(5));
+        $this->assertSame([Chain::txHash(7, 0), Chain::txHash(7, 1)], $client->getBlockTransactions(7));
+        $this->assertStringContainsString('"method":"get_block","params":{"height":4}', FakeNodeServer::requests()[0]['raw']);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testFeesComeFromGetTransactions
+    // -----------------------------------------------------------
+    //
+    // getTransactionFees POSTs the hashes to /get_transactions,
+    // asking for them decoded as JSON, and returns each fee by
+    // hash: what a transaction from before RingCT brings in
+    // beyond what it pays out.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testFeesComeFromGetTransactions(): void
+    {
+        FakeNodeServer::configure(['height' => 10, 'fees' => [4 => 250000000000, 7 => [100000000000, 20000000000]]]);
+        $hashes = [Chain::txHash(4, 0), Chain::txHash(7, 0), Chain::txHash(7, 1)];
+
+        $fees = $this->client()->getTransactionFees($hashes);
+
+        $this->assertSame(array_combine($hashes, [250000000000, 100000000000, 20000000000]), $fees);
+        $request = FakeNodeServer::requests()[0];
+        $this->assertSame(['POST', '/get_transactions', 'application/json'], [$request['http_method'], $request['path'], $request['content_type']]);
+        $this->assertSame(['txs_hashes' => $hashes, 'decode_as_json' => true], $request['body']);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testRingCtFeeIsRead
+    // -----------------------------------------------------------
+    //
+    // A RingCT transaction hides its amounts; its fee is the
+    // one rct_signatures states.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testRingCtFeeIsRead(): void
+    {
+        FakeNodeServer::configure(['height' => 10, 'fees' => [3 => 50000000000], 'rct' => true]);
+
+        $this->assertSame([Chain::txHash(3, 0) => 50000000000], $this->client()->getTransactionFees([Chain::txHash(3, 0)]));
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testRestrictedNodeIsAskedForAHundredTransactionsAtATime
+    // -----------------------------------------------------------
+    //
+    // A restricted node refuses more than 100 transactions a
+    // call: 150 go out as 100 and 50, and every fee comes
+    // back.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testRestrictedNodeIsAskedForAHundredTransactionsAtATime(): void
+    {
+        FakeNodeServer::configure(['height' => 200, 'range_cap' => 1000, 'fees' => array_fill_keys(range(1, 150), 1000000000)]);
+        $hashes = array_map(function (int $height) {
+            return Chain::txHash($height, 0);
+        }, range(1, 150));
+
+        $fees = $this->client()->getTransactionFees($hashes);
+
+        $this->assertCount(150, $fees);
+        $this->assertSame([100, 50], array_map(function (array $request) {
+            return count($request['body']['txs_hashes']);
+        }, FakeNodeServer::requests()));
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testUnknownTransactionIsRefused
+    // -----------------------------------------------------------
+    //
+    // A transaction the node does not know — in missed_tx — is
+    // a DaemonException naming it.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testUnknownTransactionIsRefused(): void
+    {
+        $message = $this->failure($this->client(), function (DaemonClient $client) {
+            $client->getTransactionFees([str_repeat('ab', 32)]);
+        });
+
+        $this->assertSame('/get_transactions: the node does not know ' . str_repeat('ab', 32), $message);
     }
 
 

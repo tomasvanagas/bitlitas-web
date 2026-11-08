@@ -104,7 +104,7 @@ class ServerResponse
     // as Secure or HttpOnly maps to true).
     //
     // Used by:
-    //   - ProtectionTest (Server/)
+    //   - ProtectionTest, FrontControllerTest (Server/)
     // -----------------------------------------------------------
 
     public function cookies(): array

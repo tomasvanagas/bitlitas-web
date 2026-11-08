@@ -10,6 +10,6 @@
 
 
 <script src="js/lib/jquery-3.7.1.min.js"></script>
-<script src="js/main.js"></script>
+<script src="js/main.js?v=3"></script>
 </body>
 </html>

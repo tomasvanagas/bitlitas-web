@@ -89,7 +89,8 @@ class World
     // -----------------------------------------------------------
     //
     // seedDB.sh's stand-in: block 0, no reward, stamped with
-    // the time of the seed.
+    // the time of the seed, and no fees, which seedDB.sh does
+    // not name.
     //
     // Used by:
     //   - seed (above)
@@ -99,7 +100,7 @@ class World
 
     public function placeholderBlock(): void
     {
-        $this->block(0, 0, time());
+        $this->block(0, 0, time(), null);
     }
 
 
@@ -137,18 +138,20 @@ class World
     // -----------------------------------------------------------
     //
     // One block row; the time defaults to Chain's for the
-    // height.
+    // height, the fees to none — null for a row stored without
+    // them.
     //
     // Used by:
     //   - placeholderBlock (above)
     //   - the Feature suite
     // -----------------------------------------------------------
 
-    public function block(int $height, int $amount, ?int $timestamp = null): void
+    public function block(int $height, int $amount, ?int $timestamp = null, ?int $fees = 0): void
     {
         Blocks::create([
             'block_height' => $height,
             'amount'       => $amount,
+            'fees'         => $fees,
             'timestamp'    => $timestamp ?? Chain::timestamp($height),
         ]);
     }
@@ -163,14 +166,16 @@ class World
     // -----------------------------------------------------------
     //
     // Chain's blocks $from to $to with their rewards and
-    // times, a thousand rows per insert, as a sync would have
-    // stored them.
+    // times, a thousand rows per insert: as a sync stores
+    // them, with no fees, since Chain's blocks hold no
+    // transaction; or, $withFees false, as rows stored before
+    // the table had a fees column, with null there.
     //
     // Used by:
     //   - the Feature and Server suites
     // -----------------------------------------------------------
 
-    public function chain(int $from, int $to): void
+    public function chain(int $from, int $to, bool $withFees = true): void
     {
         $now = Carbon::now();
         for ($start = $from; $start <= $to; $start += 1000) {
@@ -179,6 +184,7 @@ class World
                 $rows[] = [
                     'block_height' => $height,
                     'amount'       => Chain::reward($height),
+                    'fees'         => $withFees ? 0 : null,
                     'timestamp'    => Chain::timestamp($height),
                     'created_at'   => $now,
                     'updated_at'   => $now,

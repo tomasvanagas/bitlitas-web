@@ -6,8 +6,9 @@
 //  Every web request passes through here: the global
 //  middleware first, then the group its route belongs to
 //  (web for routes/web.php, api for routes/api.php), then
-//  the aliases a route names. Laravel's scaffold, with one
-//  middleware of the web group switched off.
+//  the aliases a route names. Laravel's scaffold, with the
+//  web group's session and CSRF middleware taken off: the
+//  site has no form and keeps nothing in a session.
 //
 //  Used by:
 //    - bootstrap/app.php — bound as the HTTP kernel
@@ -52,19 +53,17 @@ class Kernel extends HttpKernel
     ];
 
     // The groups RouteServiceProvider puts the route files
-    // in. web encrypts cookies, starts the session that every
-    // page view gets — a bitlitas_session and an XSRF-TOKEN
-    // cookie — and checks CSRF tokens on posts;
-    // AuthenticateSession, which signs a user out of other
-    // devices after a password change, is switched off. api
-    // allows 60 requests a minute and binds route parameters
+    // in. web encrypts cookies and binds route parameters, and
+    // starts no session: the site has no form and keeps
+    // nothing in one, and a session would cost every visit
+    // without a cookie a file on the RAM-backed tmpfs, kept
+    // two hours, and set two cookies — so no CSRF check
+    // either, which needs the session's token. api allows 60
+    // requests a minute and binds route parameters.
     protected $middlewareGroups = [
         'web' => [
             \App\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
 

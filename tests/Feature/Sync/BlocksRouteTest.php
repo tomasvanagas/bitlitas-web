@@ -70,6 +70,7 @@ class BlocksRouteTest extends FeatureTestCase
         $response->assertExactJson([
             'status'            => 'ok',
             'fetched'           => 2500,
+            'filled'            => 0,
             'last_stored_block' => 2499,
             'node_top_block'    => 2499,
             'remaining'         => 0,
@@ -185,7 +186,7 @@ class BlocksRouteTest extends FeatureTestCase
             $this->get('/blokai');
         });
 
-        $this->assertStringContainsString('.WARNING: Bitlitas node sync failed: cannot reach the node at http://bitlitas-exit:18081/json_rpc', $written);
+        $this->assertStringContainsString('.WARNING: Bitlitas node sync failed: cannot reach the node at http://bitlitas-exit:18281/json_rpc', $written);
     }
 
 
@@ -215,6 +216,40 @@ class BlocksRouteTest extends FeatureTestCase
         $response->assertStatus(409);
         $response->assertExactJson(['status' => 'busy']);
         $this->assertSame([], $daemon->requests);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testNodeBehindTheTableIs503WithTheReport
+    // -----------------------------------------------------------
+    //
+    // A node lower than the table is a 503 whose report says
+    // behind and where the node and the table stand.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testNodeBehindTheTableIs503WithTheReport(): void
+    {
+        $this->world->chain(0, 2499);
+        $this->fakeDaemon(['height' => 1000]);
+
+        $response = $this->get('/blokai');
+
+        $response->assertStatus(503);
+        $response->assertExactJson([
+            'status'            => 'behind',
+            'fetched'           => 0,
+            'filled'            => 0,
+            'last_stored_block' => 2499,
+            'node_top_block'    => 999,
+            'remaining'         => 0,
+        ]);
     }
 
 

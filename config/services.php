@@ -6,7 +6,8 @@
 //  The one that matters is the Bitlitas full node: its RPC
 //  address and login, from BITLITAS_DAEMON_URL and
 //  BITLITAS_DAEMON_LOGIN, which docker-compose.yml sets for
-//  bitlitas-web (the node is reached through bitlitas-exit).
+//  bitlitas-web: the v0.18 node, reached through
+//  bitlitas-exit.
 //  The mail and payment entries are the scaffold's, unused;
 //  stripe's model, App\User, does not exist.
 //
@@ -43,8 +44,9 @@ return [
 
     // The Bitlitas full node (bitlitasd) the home page's statistics come from
     'bitlitas' => [
-        // Its RPC address: port 18081 on v0.11 nodes, 18281 on v0.18
-        'daemon_url' => env('BITLITAS_DAEMON_URL', 'http://127.0.0.1:18081'),
+        // Its RPC address: port 18281 on v0.18 nodes, the one the
+        // stack runs; 18081 on v0.11 ones
+        'daemon_url' => env('BITLITAS_DAEMON_URL', 'http://127.0.0.1:18281'),
         // "user:password" if the node runs with --rpc-login
         'daemon_login' => env('BITLITAS_DAEMON_LOGIN'),
     ],

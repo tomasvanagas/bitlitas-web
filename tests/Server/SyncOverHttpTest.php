@@ -127,7 +127,7 @@ class SyncOverHttpTest extends ServerTestCase
 
         $mined = round(Chain::rewardSum(0, 2499) / Chain::ATOMIC_UNITS, 2);
         $this->assertStringContainsString('Dabartinis blokų aukštis: 2499</li>', $page);
-        $this->assertStringContainsString('Apdovanojimas už paskutinį bloką: ' . (Chain::reward(2499) / Chain::ATOMIC_UNITS) . ' LIT</li>', $page);
+        $this->assertStringContainsString('Apdovanojimas už paskutinį bloką: ' . round(Chain::reward(2499) / Chain::ATOMIC_UNITS, 2) . ' LIT</li>', $page);
         $this->assertStringContainsString('Iš 18.3 mln. jau iškasta ' . floor($mined / 1000) . ' tūkst.</p>', $page);
         $this->assertStringContainsString('<div class="progress-value">' . round($mined / 18300000 * 100, 1) . ' %</div>', $page);
         $this->assertStringContainsString('Sunkumas <span class="label label-warning">1,160</span>', $page);

@@ -60,8 +60,9 @@ class BlocksController extends Controller
     //
     // Runs NetworkSync for at most BLOCKS_PER_REQUEST blocks and
     // answers with its report: 200 when it ran, 409 while
-    // another sync holds the lock, 503 when the node failed.
-    // The 503 names the node's error only in debug mode, since
+    // another sync holds the lock, 503 with the report when the
+    // node is behind the table, 503 when the node failed.
+    // The failure's 503 names the node's error only in debug mode, since
     // the message holds internal addresses; the error goes to
     // Laravel's log as a warning either way.
     //
@@ -84,6 +85,8 @@ class BlocksController extends Controller
             ], 503);
         }
 
-        return response()->json($result, $result['status'] === 'busy' ? 409 : 200);
+        $statuses = ['ok' => 200, 'busy' => 409, 'behind' => 503];
+
+        return response()->json($result, $statuses[$result['status']]);
     }
 }

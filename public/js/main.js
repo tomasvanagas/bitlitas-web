@@ -45,9 +45,18 @@ $(function() {
 	canPlaceholder = Modernizr.input.placeholder;
 	baseUrl = window.location.hostname;
 	
+	// plays the film; a play the browser cuts short is let go quietly, as
+	// the pageshow handler below plays the film again once it can
+	function playFilm() {
+		var playing = videoBgEle.play();
+		if ( playing && playing.catch ) {
+			playing.catch( function () {} );
+		}
+	}
+
 	if ( Modernizr.video && desktopView && videoBgEle ) {
 			videoBgEle.load();
-			videoBgEle.play();
+			playFilm();
 		
 		if (typeof videoBgEle.loop == 'boolean') { 
 			// loop supported
@@ -67,6 +76,18 @@ $(function() {
 	else {
 		$videoBgSelector.remove();
 	}
+
+	// a page the browser brings back from its back/forward cache runs no
+	// script again, and the film was paused when the page was left: start
+	// it again, unless it was taken out above. Safari also reloads a film
+	// whose loading was cut short by leaving, which aborts a play started
+	// at once, so the film is played again as soon as it can play
+	window.addEventListener('pageshow', function ( event ) {
+		if ( event.persisted && videoBgEle && document.body.contains( videoBgEle ) ) {
+			videoBgEle.addEventListener('canplay', playFilm, { once: true });
+			playFilm();
+		}
+	});
 
 	// timer fadeout on controls
 	var beginFadeTimer = function( duration ) {
@@ -167,9 +188,15 @@ $(function() {
 	}
 
 	// util - needed ?
-	$(window).on('load', function() {
+	// jQuery 3 runs this ready handler asynchronously, so the window's
+	// load event may already be over: mark the page loaded at once then
+	if ( document.readyState === 'complete' ) {
 		$body.addClass('loaded');
-	});
+	} else {
+		$(window).on('load', function() {
+			$body.addClass('loaded');
+		});
+	}
 	
 	$(window).on('resize scroll',  scrollTrigger );
 	
@@ -181,11 +208,11 @@ $(function() {
 			$parentLevel = $('.level-hero');
 		}
 		
-		var $nextLevel = $parentLevel.next('.level'),
-		target = $nextLevel.offset(),
-		target = target.top;
-		if ( $nextLevel ) {
-			$('body,html').animate({scrollTop: target}, 700, "linear");
+		// the section right after, whatever its class: the one after
+		// the hero is no .level, and an empty set has no offset
+		var $nextLevel = $parentLevel.next();
+		if ( $nextLevel.length ) {
+			$('body,html').animate({scrollTop: $nextLevel.offset().top}, 700, "linear");
 		}
 	});
 

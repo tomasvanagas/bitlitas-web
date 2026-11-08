@@ -54,11 +54,12 @@ class HomeController extends Controller
     // Renders welcome.blade.php with the three figures of
     // statistics and the last stored block: the coins mined,
     // cut to whole thousands ("tūkst.") or millions ("mln."),
-    // and as a share of the 18.3 million the page names; the
+    // and as a share of the 18.3 million the page names, with
+    // the turn of each half of the ring around it; the
     // hash rate in H/s, cut to whole kH/s or MH/s; the
     // difficulty, which the view groups in thousands; the
     // height of the block with the highest id and its reward
-    // in LIT. A figure or a block the database does not hold
+    // in LIT, rounded to the hundredth. A figure or a block the database does not hold
     // yet — before seedDB.sh or the first sync — counts as 0,
     // so the page opens on an empty database too. The steps
     // are 1,000 and 1,000,000 themselves: the mined figure
@@ -94,6 +95,12 @@ class HomeController extends Controller
 
         $moneyPercent = round(($money / 18300000) * 100, 1);
 
+        // The ring around the share: its right half turns up to
+        // 180° for the first 50 %, its left half up to 180° more
+        $share = min($moneyPercent, 100);
+        $ringRight = round(min($share, 50) * 3.6, 2);
+        $ringLeft = round(max($share - 50, 0) * 3.6, 2);
+
 
         // STEP 3: the hash rate, in H/s or cut to kH/s or MH/s
         // ====================================================
@@ -107,14 +114,16 @@ class HomeController extends Controller
 
 
         // STEP 4: the page, with the reward converted from
-        // atomic units to LIT
+        // atomic units to LIT, to the hundredth
         // ================================================
         return view(
             'welcome',
             [
                 'money'           => $moneyResult,
                 'moneyPercent'    => $moneyPercent,
-                'lastBlockAmount' => ($lastBlock?->amount ?? 0) / 1000000000000,
+                'ringRight'       => $ringRight,
+                'ringLeft'        => $ringLeft,
+                'lastBlockAmount' => round(($lastBlock?->amount ?? 0) / 1000000000000, 2),
                 'lastBlockHeight' => $lastBlock?->block_height ?? 0,
                 'hashRate'        => $hashResult,
                 'difficulty'      => $difficulty,

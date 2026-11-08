@@ -38,7 +38,7 @@ export DB_HOST=127.0.0.1
 export DB_DATABASE=bitlitas
 export DB_USERNAME=bitlitas
 export DB_PASSWORD=bitlitas-tests
-export BITLITAS_DAEMON_URL=http://127.0.0.1:18081
+export BITLITAS_DAEMON_URL=http://127.0.0.1:18281
 
 mkdir -p $LOGS $NODE
 
@@ -76,8 +76,8 @@ php $APP/artisan migrate --force > $LOGS/migrate.out
 
 
 # The full node's stand-in, steered by the tests through $NODE
-php -S 127.0.0.1:18081 $APP/tests/container/fake-node.php >> $LOGS/fake-node.log 2>&1 &
-wait_for 18081
+php -S 127.0.0.1:18281 $APP/tests/container/fake-node.php >> $LOGS/fake-node.log 2>&1 &
+wait_for 18281
 
 
 # Apache, started the way the production image starts it

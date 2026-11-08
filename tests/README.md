@@ -31,8 +31,9 @@ Each run does three things:
 3. Starts the result with `--network none`, shaped like the `bitlitas-web`
    container of `docker-compose.yml`:
    - user 1000 on a read-only root filesystem;
-   - the same tmpfs mounts: `/tmp`, and `storage/framework` with its
-     `cache`, `sessions` and `views` folders;
+   - the same tmpfs mounts, of the same sizes: `/tmp`, and
+     `storage/framework` with its `cache`, `sessions` and `views`
+     folders;
    - `storage/logs` as a mount of its own: a tmpfs owned by 1000 here, a
      bind mount in production;
    - MySQL's data and socket on tmpfs mounts as well;
@@ -68,8 +69,8 @@ vendor and PHPUnit. The test run itself never does.
 | `CreatesApplication.php` | The fresh app every test gets, built from `bootstrap/app.php` |
 | `bootstrap.php` | PHPUnit's bootstrap: the app's autoloader, the test tools' one from `/opt/test-tools`, and the `Tests` namespace |
 | `Support/World.php` | Builders for the rows: what `seedDB.sh` leaves, figures, single blocks, a run of the chain |
-| `Support/Chain.php` | The stand-in chain, built like v0.11's: the genesis reward, the emission curve, a block a minute from 2018-01-15 |
-| `Support/NodeEmulator.php` | bitlitasd v0.11's JSON-RPC answers, steered by one state array (busy, capped, damaged, failing, growing, …) |
+| `Support/Chain.php` | The stand-in chain, built like bitlitasd's: the genesis reward, the emission curve, a block a minute from 2018-01-15, with v0.18's header fields |
+| `Support/NodeEmulator.php` | bitlitasd v0.18's RPC answers — `get_info`, `get_block_headers_range`, `get_block`, `/get_transactions` — steered by one state array (busy, restricted, damaged, failing, growing, fees, …) |
 | `Support/FakeDaemon.php` | The app's own `DaemonClient` with a `NodeEmulator` in place of curl |
 | `Support/FakeNodeServer.php` | The stand-in node over HTTP: its state file and request log |
 | `Support/ServerClient.php`, `ServerResponse.php` | curl for the real Apache, and what it answered |
@@ -89,7 +90,7 @@ Five files outside `tests/` belong to the suite:
 ## Rules
 
 - **Offline.** Nothing reaches the network. The full node is a stand-in,
-  steered per test: in memory (`FakeDaemon`) or on `127.0.0.1:18081`
+  steered per test: in memory (`FakeDaemon`) or on `127.0.0.1:18281`
   (`container/fake-node.php`), where `BITLITAS_DAEMON_URL` points. Every
   file the page loads is the site's own and is checked, its libraries
   (`public/js/lib`) and the Open Sans web font (`public/fonts`) included.
@@ -143,15 +144,15 @@ None at the moment.
 
 ## Fixed defects
 
-Every pinned defect has been fixed. Each test now lives in its home file,
-without the pin:
+These pinned defects have been fixed. Each test now lives in its home
+file, without the pin:
 
 | Id | Home test | What was wrong | The fix |
 |---|---|---|---|
 | `display-errors` | `PhpRuntimeTest::testPhpShowsNoErrorsToVisitors` | The image had no `php.ini`, so PHP ran with `display_errors` On | The Dockerfile installs `php.ini-production` |
 | `expose-php` | `ProtectionTest::testAnswersDoNotNamePhp`, `PhpRuntimeTest::testPhpNamesNoVersion` | Every answer carried `X-Powered-By: PHP/8.4.27` | `expose_php = Off` in that `php.ini` |
 | `debug-by-default` | `ConfigTest::testDebugStaysOffWithoutAppDebug` | `config/app.php` turned debug mode on whenever `APP_DEBUG` was missing | `'debug' => env('APP_DEBUG', false)` |
-| `session-cookie-secure` | `ProtectionTest::testCookiesAreSecure` | The session and XSRF cookies were not Secure | `config/session.php` makes them Secure unless `SESSION_SECURE_COOKIE` says otherwise |
+| `session-cookie-secure` | `ConfigTest::testSessionCookiesWouldBeSecure`, `ProtectionTest::testSiteSetsNoCookie` | The session and XSRF cookies were not Secure | `config/session.php` makes a session's cookies Secure unless `SESSION_SECURE_COOKIE` says otherwise; the site now sets none |
 | `account-routes` | `RouteInventoryTest::testAccountRoutesAreNotFound` | The scaffold's `api/user` answered 401, and 500 with a token | `routes/api.php` has no routes |
 | `home-without-stats` | `HomePageTest::testPageOpensBeforeTheSeed` | The home page was a 500 until `seedDB.sh` had run | `HomeController` counts a missing figure or block as 0 |
 | `mined-threshold-fractions` | `HomePageTest::testMinedCoinsAreShortened` | 999.5 coins read "0 tūkst." and 999,999.5 read "0 mln." | Steps at `>= 1000` and `>= 1000000` |
@@ -159,6 +160,11 @@ without the pin:
 | `hash-rate-mega-unit` | `HomePageTest::testHashRateIsShownInItsUnit` | Millions of hashes read "mH/s" | "MH/s" |
 | `description-typo` | `HomePageTest::testDescriptionSpellsKriptovaliuta` | The meta description wrote "kriptavaliuta" | "kriptovaliuta" in `core/layout.blade.php` |
 | `html-lang` | `HomePageTest::testPageDeclaresItsLanguage` | Neither html tag of the layout declared the page Lithuanian | `lang="lt"` on both |
+| `mined-includes-fees` | `NetworkSyncTest::testMinedCountsOnlyNewCoins`, `NetworkSyncTest::testRowsStoredWithoutFeesGetThem` | The mined figure counted every fee ever paid as mined: a block's reward is its new coins and its fees together | `blocks.fees`, from `get_block` and `/get_transactions` (both allowed on a restricted node); mined is rewards less fees, and rows stored before the column get their fees filled in |
+| `node-behind-figures` | `NetworkSyncTest::testNodeBehindTheTableIsReported` | A node lower than the table had its figures stored over the chain's, and the run reported "ok" | The run reports "behind" and changes nothing; `/blokai` answers 503 and `bitlitas:sync` exits 1 |
+| `progress-ring-fixed` | `HomePageTest::testRingTurnsAsFarAsTheShare`, `TemplatesTest::testRingTurnsAsTheTemplateSays` | The ring around the mined share was a fixed 31° arc (8.6 %) | Each half's bar turns to the `--turn` that `HomeController` works out; the left half is back in the template |
+| `hint-arrow-target` | `HomePageTest::testHintArrowHasASectionToScrollTo`, `TemplatesTest::testHintArrowScrollsToTheNextSection` | Clicking the hint arrow threw in `main.js`: the section after the hero is no `.level` | `main.js` scrolls to the hero's next section, whatever its class, when there is one. The class stays off the section, since `.level` would change its spacing |
+| `home-page-session` | `ProtectionTest::testVisitLeavesNoSessionBehind`, `ProtectionTest::testSiteSetsNoCookie` | Every visit without a cookie wrote a session file to RAM, kept two hours | The web group has no session or CSRF middleware; the site sets no cookie |
 
 ## Found but not pinned
 
@@ -184,11 +190,6 @@ repository, harmless today, or not testable here:
 - **The donation details may not reach the project.** The PayPal link names
   `spliffymap`, the 2018 developer's handle, and the BTC and ETH addresses
   are from the same page; who holds them today is not known here.
-- **"Mined" counts the fees.** The node's block reward is the new coins and
-  the block's fees together, so the sum `NetworkSync` stores overstates
-  the coins mined by every fee ever paid — next to nothing on this chain.
-  Telling the two apart needs more from the node than the block headers
-  the sync reads.
 - **Glyphicons point at missing fonts.** `grid.css` declares the Glyphicons
   font from `../fonts/`, which is not shipped. No element uses a glyphicon,
   so no browser asks for it.
@@ -198,6 +199,65 @@ repository, harmless today, or not testable here:
 - **Running `bitlitas:sync` as root can break the site's logging.** A
   `docker exec -u root` can leave storage files that only root can write,
   Laravel's log among them, and the site then fails on its next log line.
-  `docker exec` without `-u` runs the command as 1000, Apache's user, as
-  bitlitas-cron and `syncWebappFullnode.sh` do. The suite runs everything
-  as 1000, so it cannot show this.
+  The sync's lock is safe from it: when the host's `fs.protected_regular`
+  refuses user 1000 an `fopen` mode `'c'` of a lock file root made,
+  `NetworkSync` opens it `'r'`, and `flock` still locks. `docker exec`
+  without `-u` runs the command as 1000, Apache's user, as bitlitas-cron
+  and `syncWebappFullnode.sh` do. The suite runs everything as 1000, so it
+  cannot show either.
+- **Glyphicons point at missing fonts.** `grid.css` declares the Glyphicons
+  font from `../fonts/`, which is not shipped. No element uses a glyphicon,
+  so no browser asks for it.
+- **A chain reorganization goes unnoticed.** Blocks stored before one keep
+  their old rewards and times, because the table keeps no hashes. The two
+  branches' rewards differ only by fees.
+- **Running `bitlitas:sync` as root can break the site's logging and
+  its sync.** A `docker exec -u root` can leave storage files that only
+  root can write, Laravel's log among them, and the site then fails on its
+  next log line. It also leaves the sync's lock file, which is mode 0666
+  but owned by root. `storage/framework` is a sticky folder anyone may
+  write to, and the host's `fs.protected_regular` refuses user 1000 an
+  `fopen` mode `'c'` of a root-owned file there. Every later `/blokai` and
+  cron sync then fails until the container restarts; a mode `'r'` open
+  would still lock. `docker exec` without `-u` runs the command as 1000,
+  Apache's user, as bitlitas-cron and `syncWebappFullnode.sh` do. The
+  suite runs everything as 1000, so it cannot show this.
+- **Glyphicons point at missing fonts.** `grid.css` declares the Glyphicons
+  font from `../fonts/`, which is not shipped. No element uses a glyphicon,
+  so no browser asks for it.
+- **A chain reorganization goes unnoticed.** Blocks stored before one keep
+  their old rewards and times, because the table keeps no hashes. The two
+  branches' rewards differ only by fees.
+- **Running `bitlitas:sync` as root can break the site's logging.** A
+  `docker exec -u root` can leave storage files that only root can write,
+  Laravel's log among them, and the site then fails on its next log line.
+  The sync's lock is safe from it: when the host's `fs.protected_regular`
+  refuses user 1000 an `fopen` mode `'c'` of a lock file root made,
+  `NetworkSync` opens it `'r'`, and `flock` still locks. `docker exec`
+  without `-u` runs the command as 1000, Apache's user, as bitlitas-cron
+  and `syncWebappFullnode.sh` do. The suite runs everything as 1000, so it
+  cannot show either.
+- **Glyphicons point at missing fonts.** `grid.css` declares the Glyphicons
+  font from `../fonts/`, which is not shipped. No element uses a glyphicon,
+  so no browser asks for it.
+- **A chain reorganization goes unnoticed.** Blocks stored before one keep
+  their old rewards and times, because the table keeps no hashes. The two
+  branches' rewards differ only by fees.
+- **Running `bitlitas:sync` as root can break the site's logging and
+  its sync.** A `docker exec -u root` can leave storage files that only
+  root can write, Laravel's log among them, and the site then fails on its
+  next log line. It also leaves the sync's lock file, which is mode 0666
+  but owned by root. `storage/framework` is a sticky folder anyone may
+  write to, and the host's `fs.protected_regular` refuses user 1000 an
+  `fopen` mode `'c'` of a root-owned file there. Every later `/blokai` and
+  cron sync then fails until the container restarts; a mode `'r'` open
+  would still lock. `docker exec` without `-u` runs the command as 1000,
+  Apache's user, as bitlitas-cron and `syncWebappFullnode.sh` do. The
+  suite runs everything as 1000, so it cannot show this.
+- **The tmpfs mounts have no size limit, and the throttle's files are
+  never removed.** `docker-compose.yml` mounts `storage/framework` and
+  its folders as tmpfs without `size=`, so they may take half the host's
+  RAM. Laravel's file cache, which keeps the `/blokai` throttle, removes no
+  expired file, so every address that ever visits `/blokai` leaves two
+  files until the container restarts. The limit is a stack change, and the
+  files outlive any test's minute.

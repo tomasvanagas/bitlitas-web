@@ -5,9 +5,10 @@
 //
 //  DaemonClient with only its transport replaced: post, the
 //  one method that touches the network, asks a NodeEmulator
-//  instead of curl. Everything above it — the JSON-RPC
-//  request the client builds, how it reads the answer, every
-//  check it makes — runs as it does in production. Bound in
+//  instead of curl. Everything above it — the JSON-RPC and
+//  /get_transactions requests the client builds, how it
+//  reads the answers, every check it makes — runs as it does
+//  in production. Bound in
 //  the container in place of the real client, it gives a
 //  Feature test a node it fully controls, and keeps every
 //  request it was sent.
@@ -37,9 +38,10 @@ use App\Services\DaemonException;
 // Its node and its request log are public, so a test steers
 // the one and reads the other.
 //
-//   post    — the node's answer to one request
-//   methods — the methods asked for, in order
-//   ranges  — the header ranges asked for, in order
+//   post         — the node's answer to one request
+//   methods      — the JSON-RPC methods asked for, in order
+//   ranges       — the header ranges asked for, in order
+//   transactions — the transactions asked for, call by call
 //
 // Used by:
 //   - TestCase::fakeDaemon (tests/)
@@ -51,10 +53,11 @@ class FakeDaemon extends DaemonClient
 
     // The address it pretends to call: the one
     // docker-compose.yml gives production
-    public const URL = 'http://bitlitas-exit:18081';
+    public const URL = 'http://bitlitas-exit:18281';
 
     // The node in memory, and every request it was sent,
-    // decoded
+    // decoded — a request to a path other than /json_rpc
+    // carries that path under "path"
     public $node;
     public $requests = [];
 
@@ -97,16 +100,18 @@ class FakeDaemon extends DaemonClient
     // unreachable.
     //
     // Used by:
-    //   - DaemonClient::call — every request
+    //   - DaemonClient::call, DaemonClient::request — every
+    //     request
     // -----------------------------------------------------------
 
-    protected function post($body)
+    protected function post($path, $body)
     {
-        $this->requests[] = json_decode($body, true);
+        $request = json_decode($body, true);
+        $this->requests[] = $path === '/json_rpc' ? $request : ['path' => $path] + $request;
         if ($this->unreachable) {
-            throw new DaemonException('cannot reach the node at ' . self::URL . '/json_rpc: Failed to connect to bitlitas-exit port 18081: Connection refused');
+            throw new DaemonException('cannot reach the node at ' . self::URL . $path . ': Failed to connect to bitlitas-exit port 18281: Connection refused');
         }
-        return $this->node->answer($body);
+        return $this->node->answer($body, $path);
     }
 
 
@@ -118,7 +123,8 @@ class FakeDaemon extends DaemonClient
     // methods
     // -----------------------------------------------------------
     //
-    // The method of every request, in the order sent.
+    // The method of every JSON-RPC request, in the order
+    // sent.
     //
     // Used by:
     //   - the Feature suite
@@ -149,10 +155,37 @@ class FakeDaemon extends DaemonClient
     {
         $ranges = [];
         foreach ($this->requests as $request) {
-            if ($request['method'] === 'get_block_headers_range') {
+            if (($request['method'] ?? null) === 'get_block_headers_range') {
                 $ranges[] = [$request['params']['start_height'], $request['params']['end_height']];
             }
         }
         return $ranges;
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // transactions
+    // -----------------------------------------------------------
+    //
+    // The hashes every /get_transactions request asked for,
+    // one list per request, in the order sent.
+    //
+    // Used by:
+    //   - the Feature suite
+    // -----------------------------------------------------------
+
+    public function transactions(): array
+    {
+        $asked = [];
+        foreach ($this->requests as $request) {
+            if (($request['path'] ?? null) === '/get_transactions') {
+                $asked[] = $request['txs_hashes'];
+            }
+        }
+        return $asked;
     }
 }

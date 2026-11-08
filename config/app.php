@@ -51,8 +51,9 @@ return [
     // The 32-byte key of cookies, sessions and encrypted
     // values. docker-compose.yml fills APP_KEY from
     // LARAVEL_APP_KEY, which runUpdateThisStack.sh makes once
-    // in the stack's .env; without it every page that sets a
-    // cookie is a 500
+    // in the stack's .env; without it a visit that carries a
+    // cookie is a 500, since EncryptCookies needs the key to
+    // read it
     'key' => env('APP_KEY'),
 
     'cipher' => 'AES-256-CBC',

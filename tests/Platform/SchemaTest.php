@@ -88,7 +88,7 @@ class SchemaTest extends TestCase
     // -----------------------------------------------------------
     //
     // blocks and statistics, beside Laravel's migrations
-    // table, which records both migrations as run.
+    // table, which records all three migrations as run.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
@@ -102,6 +102,7 @@ class SchemaTest extends TestCase
         $this->assertSame([
             '2018_02_03_145232_create_blocks_table',
             '2018_02_07_173350_create_statistics_table',
+            '2026_11_09_000000_add_fees_to_blocks_table',
         ], DB::table('migrations')->orderBy('migration')->pluck('migration')->all());
     }
 
@@ -114,10 +115,12 @@ class SchemaTest extends TestCase
     // testBlocksHoldOneRowPerBlock
     // -----------------------------------------------------------
     //
-    // A block's height (int), its time and its reward in
-    // atomic units (bigint — a reward is ~1.8·10¹³, the
-    // total ~1.8·10¹⁹ at the end of the emission), none of
-    // them nullable, under an auto-increment id.
+    // A block's height (int), its time, its reward in atomic
+    // units (bigint — a reward is ~1.8·10¹³, the total
+    // ~1.8·10¹⁹ at the end of the emission), none of them
+    // nullable, and the fees of its transactions, null for a
+    // row stored before the column, under an auto-increment
+    // id.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
@@ -130,6 +133,7 @@ class SchemaTest extends TestCase
             'block_height' => 'int(11) NO',
             'timestamp'    => 'bigint(20) NO',
             'amount'       => 'bigint(20) NO',
+            'fees'         => 'bigint(20) YES',
             'created_at'   => 'timestamp YES',
             'updated_at'   => 'timestamp YES',
         ], $this->columns('blocks'));
