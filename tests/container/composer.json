@@ -3,18 +3,11 @@
     "description": "PHPUnit for the regression suite, kept out of the app's own vendor so the app runs exactly what ships",
     "type": "project",
     "require": {
-        "phpunit/phpunit": "^7.5"
+        "phpunit/phpunit": "^13.0"
     },
     "config": {
         "platform": {
-            "php": "7.4.33"
-        },
-        "policy": {
-            "advisories": {
-                "ignore-id": {
-                    "PKSA-z3gr-8qht-p93v": "CVE-2026-24765 needs PHPT tests run with code coverage; the suite runs neither, offline, and Laravel 5.5's TestCase works with no PHPUnit after 7"
-                }
-            }
+            "php": "8.4.27"
         },
         "sort-packages": true
     }

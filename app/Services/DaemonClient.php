@@ -4,10 +4,9 @@
 //  [*] DaemonClient — the client of the full node
 //
 //  Talks to a Bitlitas full node (bitlitasd) over its JSON-RPC
-//  interface, the one the 2018 block explorer used. It makes
-//  only calls that work on a node started with
-//  --restricted-rpc, and that answer even while the node does
-//  not count as synchronized with its peers:
+//  interface. It makes only calls that work on a node started
+//  with --restricted-rpc, and that answer even while the node
+//  does not count as synchronized with its peers:
 //  get_last_block_header, for one, answers BUSY then, and a
 //  lone node mining its own chain may never count as
 //  synchronized. Every failure is a DaemonException naming the
@@ -51,8 +50,8 @@ class DaemonClient
 {
 
     // Seconds allowed to connect, and for a whole call
-    const CONNECT_TIMEOUT = 5;
-    const TIMEOUT = 30;
+    private const CONNECT_TIMEOUT = 5;
+    private const TIMEOUT = 30;
 
     // The node's JSON-RPC address, the base URL with
     // /json_rpc appended

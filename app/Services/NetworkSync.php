@@ -4,8 +4,7 @@
 //  [*] NetworkSync — copying the chain from the full node
 //
 //  Brings the blocks table and the three figures of the
-//  statistics table up to date with the full node — the job
-//  the 2018 code did through the block explorer's API. It
+//  statistics table up to date with the full node. It
 //  stores the blocks the table lacks, oldest first, from the
 //  headers of get_block_headers_range, then recomputes the
 //  mined coins, the hash rate and the difficulty. A lock
@@ -64,10 +63,10 @@ class NetworkSync
 
     // Headers asked for per RPC call: the most a restricted
     // v0.18 node gives in one, with room to spare
-    const HEADERS_PER_CALL = 1000;
+    private const HEADERS_PER_CALL = 1000;
 
     // Atomic units in one LIT
-    const ATOMIC_UNITS = 1000000000000;
+    private const ATOMIC_UNITS = 1000000000000;
 
     // The full node's client
     private $daemon;
@@ -312,9 +311,8 @@ class NetworkSync
     // get_info, stores each as text — a new row, or the value
     // of the existing one replaced — and returns them: the
     // coins of every stored block in LIT to the hundredth, the
-    // difficulty over the block time as the 2018 explorer
-    // worked out the hash rate (0 when the node gives no block
-    // time), and the difficulty.
+    // hash rate as the difficulty over the block time (0 when
+    // the node gives no block time), and the difficulty.
     //
     // Used by:
     //   - sync (above)
@@ -327,7 +325,7 @@ class NetworkSync
 
         $statistics = [
             'mined' => round(Blocks::sum('amount') / self::ATOMIC_UNITS, 2),
-            // Hashes per second, worked out the way the 2018 explorer did
+            // Hashes per second: a block's expected hashes over the seconds between blocks
             'hash_rate'  => $target > 0 ? intdiv($difficulty, $target) : 0,
             'difficulty' => $difficulty,
         ];

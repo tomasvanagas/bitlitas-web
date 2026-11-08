@@ -3,7 +3,7 @@
 // -----------------------------------------------------------
 //  [*] Handler — what happens to an uncaught exception
 //
-//  Laravel's handler as the scaffold left it: every exception
+//  Laravel's own handler with nothing added: every exception
 //  is written to storage/logs/laravel.log and turned into an
 //  error page — the framework's plain one with debug mode
 //  off, the code and the stack trace with it on. The app
@@ -17,8 +17,8 @@
 
 namespace App\Exceptions;
 
-use Exception;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Throwable;
 
 
 
@@ -73,7 +73,7 @@ class Handler extends ExceptionHandler
     //     catch
     // -----------------------------------------------------------
 
-    public function report(Exception $exception)
+    public function report(Throwable $exception)
     {
         parent::report($exception);
     }
@@ -95,7 +95,7 @@ class Handler extends ExceptionHandler
     //   - the HTTP kernel — every exception a request raises
     // -----------------------------------------------------------
 
-    public function render($request, Exception $exception)
+    public function render($request, Throwable $exception)
     {
         return parent::render($request, $exception);
     }

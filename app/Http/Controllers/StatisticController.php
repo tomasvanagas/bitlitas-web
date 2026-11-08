@@ -3,10 +3,9 @@
 // -----------------------------------------------------------
 //  [*] StatisticController — an empty controller
 //
-//  Created in February 2018 next to the Statistic model and
-//  never filled in: it has no action and no route names it.
-//  The figures it might have served are rendered by
-//  HomeController and written by NetworkSync.
+//  An empty class beside the Statistic model: it has no
+//  action, and no route names it. The figures it might serve
+//  are rendered by HomeController and written by NetworkSync.
 //
 //  Used by:
 //    - nothing uses it at the moment

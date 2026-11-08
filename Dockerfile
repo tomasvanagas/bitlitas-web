@@ -1,4 +1,4 @@
-FROM php:7.4-fpm-alpine
+FROM php:8.4.27-fpm-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -10,8 +10,13 @@ RUN apk add --no-cache \
 # Install PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql mbstring gd
 
+# Session upload progress off: PHP's own mitigation of CVE-2026-115560,
+# which no release fixes yet (8.4.27 does not). The site uploads nothing,
+# so nothing depends on the feature
+RUN echo "session.upload_progress.enabled = 0" > "$PHP_INI_DIR/conf.d/zz-session-upload-progress.ini"
+
 # Get Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www/html
@@ -19,8 +24,9 @@ WORKDIR /var/www/html
 # Copy application
 COPY . .
 
-# Install composer dependencies
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
+# Install composer dependencies; its scripts run Laravel's package
+# discovery, which writes the package manifest to bootstrap/cache
+RUN mkdir -p bootstrap/cache && composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set up Laravel
 RUN cp .env.example .env 2>/dev/null || ( \
@@ -35,7 +41,6 @@ RUN cp .env.example .env 2>/dev/null || ( \
         echo "DB_PASSWORD=\${DB_PASSWORD}" >> .env \
     ) \
     && mkdir -p bootstrap/cache storage/framework/{sessions,views,cache} \
-    && echo "<?php return [];" > bootstrap/cache/packages.php \
     && php artisan key:generate --force \
     && chmod -R 777 storage bootstrap/cache
 

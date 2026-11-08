@@ -92,7 +92,7 @@ class WebServerConfigTest extends TestCase
 
     public function testNginxNamesNoVersion(): void
     {
-        $this->assertRegExp('/^\s*server_tokens off;/m', file_get_contents('/etc/nginx/nginx.conf'));
+        $this->assertMatchesRegularExpression('/^\s*server_tokens off;/m', file_get_contents('/etc/nginx/nginx.conf'));
     }
 
 

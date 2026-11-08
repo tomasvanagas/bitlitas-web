@@ -3,9 +3,12 @@
 // -----------------------------------------------------------
 //  [*] PhpRuntimeTest — the PHP the image ships
 //
-//  The Dockerfile builds on php:7.4-fpm-alpine — PHP 7.4.33
-//  — and adds pdo_mysql, mbstring and gd; curl, OpenSSL and
-//  the rest come with the official image. php-fpm serves
+//  The Dockerfile builds on php:8.4.27-fpm-alpine — the
+//  release that fixes PHP2Shell (CVE-2026-109618 and
+//  CVE-2026-109619) — and adds pdo_mysql, mbstring and gd;
+//  curl, OpenSSL and the rest come with the official image.
+//  Session upload progress is off, PHP's own mitigation of
+//  CVE-2026-115560, which no release fixes yet. php-fpm serves
 //  the app as www-data, runs only files ending in .php, and
 //  hands every worker the container's environment —
 //  clear_env = no, from the official image's docker.conf —
@@ -45,7 +48,7 @@ use Tests\TestCase;
 class PhpRuntimeTest extends TestCase
 {
 
-    // What the app and Laravel 5.5 load: PDO's MySQL driver,
+    // What the app and Laravel 13 load: PDO's MySQL driver,
     // mbstring, tokenizer, ctype, dom and json for the
     // framework, OpenSSL for its encrypter, curl for the node,
     // and gd, which the Dockerfile installs
@@ -60,8 +63,8 @@ class PhpRuntimeTest extends TestCase
     // testPhpIsTheImagesVersion
     // -----------------------------------------------------------
     //
-    // PHP 7.4.33, the last 7.4 release, which the image's tag
-    // resolves to.
+    // PHP 8.4.27, the image's pinned tag: a version change
+    // must be a decision, not an accident of a base image.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
@@ -69,7 +72,33 @@ class PhpRuntimeTest extends TestCase
 
     public function testPhpIsTheImagesVersion(): void
     {
-        $this->assertSame('7.4.33', PHP_VERSION);
+        $this->assertSame('8.4.27', PHP_VERSION);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testSessionUploadProgressIsOff
+    // -----------------------------------------------------------
+    //
+    // session.upload_progress.enabled is off for the command
+    // line and for php-fpm alike: the Dockerfile's ini file
+    // sits in the conf.d folder both read, and CVE-2026-115560
+    // needs the feature on.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testSessionUploadProgressIsOff(): void
+    {
+        $this->assertSame('0', ini_get('session.upload_progress.enabled'));
+
+        preg_match('/^session\.upload_progress\.enabled => (\S+)/m', (string) shell_exec('php-fpm -i 2>/dev/null'), $match);
+        $this->assertSame('Off', $match[1] ?? null);
     }
 
 
@@ -130,7 +159,7 @@ class PhpRuntimeTest extends TestCase
     //
     // The workers run as www-data, the owner of storage/logs
     // (runUpdateThisStack.sh chowns the bind mount to 82:82),
-    // and run only PHP 7.4's default .php and .phar files —
+    // and run only PHP's default .php and .phar files —
     // nginx hands them nothing but paths ending in .php.
     //
     // Used by:

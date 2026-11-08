@@ -3,14 +3,16 @@
 // -----------------------------------------------------------
 //  [*] UserFactory — the scaffold's fake users
 //
-//  Defines how Faker makes an App\User for tests and seeders:
-//  a name, a unique e-mail address, the password "secret" and
-//  a remember token. Dead code: the app has no App\User model
-//  and no users table, and no test or seeder makes users.
+//  Defines how Faker would make an App\User: a name, a
+//  unique e-mail address, the password "secret" and a
+//  remember token. Dead code: nothing loads the file — a
+//  Laravel factory is a class, and this is a closure handed
+//  to a $factory nothing defines — and it could not run if
+//  something did: the app has no App\User model or users
+//  table, and the str_random helper it calls does not exist.
 //
 //  Used by:
-//    - Laravel's model factories — loaded with every factory
-//      call, of which there are none at the moment
+//    - nothing loads it at the moment
 // -----------------------------------------------------------
 
 

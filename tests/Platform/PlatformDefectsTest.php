@@ -106,10 +106,10 @@ class PlatformDefectsTest extends TestCase
     //
     // [debug-by-default] A container started without
     // APP_DEBUG runs with debug mode off. config/app.php
-    // defaults it to true (since 2018), so such a container
-    // shows the code, the stack trace and the request of
-    // every error to whoever caused it; docker-compose.yml
-    // sets APP_DEBUG=false, which is all that keeps it off.
+    // defaults it to true, so such a container shows the
+    // code, the stack trace and the request of every error
+    // to whoever caused it; docker-compose.yml sets
+    // APP_DEBUG=false, which is all that keeps it off.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)

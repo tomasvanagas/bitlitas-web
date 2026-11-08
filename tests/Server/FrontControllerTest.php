@@ -16,6 +16,7 @@
 
 namespace Tests\Server;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\ServerTestCase;
 
 
@@ -62,7 +63,7 @@ class FrontControllerTest extends ServerTestCase
         $response = $this->http->get('/');
 
         $this->assertSame(200, $response->status);
-        $this->assertSame('text/html; charset=UTF-8', $response->header('Content-Type'));
+        $this->assertSame('text/html; charset=utf-8', $response->header('Content-Type'));
         $this->assertStringContainsString('<h1 class="heading">BitLitas</h1>', $response->body);
         $this->assertStringContainsString('Iš 18.3 mln. jau iškasta 0</p>', $response->body);
     }
@@ -114,7 +115,7 @@ class FrontControllerTest extends ServerTestCase
         $response = $this->http->get('/no/such/page');
 
         $this->assertSame(404, $response->status);
-        $this->assertStringContainsString('Sorry, the page you are looking for could not be found.', $response->body);
+        $this->assertStringContainsString('Not Found', $response->body);
     }
 
 
@@ -134,7 +135,7 @@ class FrontControllerTest extends ServerTestCase
     //   - PHPUnit — the Server suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /** @dataProvider publicFiles */
+    #[DataProvider('publicFiles')]
     public function testFilesOfPublicComeFromNginx(string $path, string $type): void
     {
         $response = $this->http->head($path);
@@ -161,7 +162,7 @@ class FrontControllerTest extends ServerTestCase
     //   - testFilesOfPublicComeFromNginx (above)
     // -----------------------------------------------------------
 
-    public function publicFiles(): array
+    public static function publicFiles(): array
     {
         return [
             'the stylesheet'     => ['/css/main.css', 'text/css'],

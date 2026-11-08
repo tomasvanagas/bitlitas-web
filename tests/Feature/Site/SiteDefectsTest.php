@@ -208,7 +208,7 @@ class SiteDefectsTest extends FeatureTestCase
 
         $this->pinDefect('html-lang', function () {
             $tag = $this->shown('/<!--\[if gt IE 8\]><!-->(<html[^>]*>)/');
-            $this->assertRegExp('/ lang="lt"/', $tag, "the page opens with $tag");
+            $this->assertMatchesRegularExpression('/ lang="lt"/', $tag, "the page opens with $tag");
         });
     }
 

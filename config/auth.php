@@ -8,11 +8,12 @@
 //  users through an Eloquent model, and the password-reset
 //  broker. The site has no accounts — no App\User model, no
 //  users or password_resets table — so these settings serve
-//  only the dead routes that Auth::routes() and api/user add.
+//  only the dead api/user route.
 //
-//  Known bug (medium): the account routes these settings back
-//  answer with 500s, and api/user redirects to the 500 of
-//  /login [account-routes] — see routes/web.php.
+//  Known bug (medium): api/user, behind the api guard, is a
+//  500 for any request that carries a token, since the guard
+//  looks for the missing App\User model [account-routes] —
+//  see routes/api.php.
 //
 //  Used by:
 //    - Laravel's configuration — read as config('auth.…') by
@@ -44,8 +45,7 @@ return [
     ],
 
     // Where the guards read their users: an Eloquent model
-    // the app does not have. The scaffold's alternative, the
-    // users table read directly, was left switched off
+    // the app does not have
     'providers' => [
         'users' => [
             'driver' => 'eloquent',

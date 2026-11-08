@@ -11,7 +11,7 @@
 //  web group, CSRF tokens included, needs one.
 //
 //  Known bug (low): the session and XSRF cookies are not
-//  marked Secure (session.php:67), though the site is served
+//  marked Secure (session.php:69), though the site is served
 //  over HTTPS only, so a browser would send them over plain
 //  HTTP too [session-cookie-secure]. Fix: set
 //  SESSION_SECURE_COOKIE=true in docker-compose.yml.
@@ -21,6 +21,8 @@
 //      by StartSession and VerifyCsrfToken
 // -----------------------------------------------------------
 
+
+use Illuminate\Support\Str;
 
 return [
 
@@ -55,7 +57,7 @@ return [
     // The session cookie's name, path and domain
     'cookie' => env(
         'SESSION_COOKIE',
-        str_slug(env('APP_NAME', 'laravel'), '_').'_session'
+        Str::slug(env('APP_NAME', 'laravel'), '_').'_session'
     ),
 
     'path' => '/',

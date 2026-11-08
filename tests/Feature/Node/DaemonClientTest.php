@@ -24,6 +24,7 @@ namespace Tests\Feature\Node;
 
 use App\Services\DaemonClient;
 use App\Services\DaemonException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\FeatureTestCase;
 use Tests\Support\FakeNodeServer;
 
@@ -309,7 +310,7 @@ class DaemonClientTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /** @dataProvider notJsonRpc */
+    #[DataProvider('notJsonRpc')]
     public function testAnswerThatIsNoJsonRpcIsRefused(string $body): void
     {
         FakeNodeServer::configure(['raw_body' => $body]);
@@ -332,7 +333,7 @@ class DaemonClientTest extends FeatureTestCase
     //   - testAnswerThatIsNoJsonRpcIsRefused (above)
     // -----------------------------------------------------------
 
-    public function notJsonRpc(): array
+    public static function notJsonRpc(): array
     {
         return [
             'a web page'       => ['<html><body>It works!</body></html>'],
@@ -408,7 +409,7 @@ class DaemonClientTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /** @dataProvider infoFigures */
+    #[DataProvider('infoFigures')]
     public function testInfoWithoutAFigureIsRefused(string $figure): void
     {
         FakeNodeServer::configure(['omit_info' => [$figure]]);
@@ -431,7 +432,7 @@ class DaemonClientTest extends FeatureTestCase
     //   - testInfoWithoutAFigureIsRefused (above)
     // -----------------------------------------------------------
 
-    public function infoFigures(): array
+    public static function infoFigures(): array
     {
         return [
             'height'     => ['height'],
@@ -485,7 +486,7 @@ class DaemonClientTest extends FeatureTestCase
         $message = $this->failure($this->client(null, 'http://127.0.0.1:1'));
 
         $this->assertStringStartsWith('cannot reach the node at http://127.0.0.1:1/json_rpc: ', $message);
-        $this->assertStringContainsString('Connection refused', $message);
+        $this->assertStringContainsString('Failed to connect to 127.0.0.1', $message);
     }
 
 

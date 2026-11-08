@@ -18,6 +18,7 @@
 
 namespace Tests\Server;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\ServerTestCase;
 
 
@@ -57,7 +58,7 @@ class ProtectionTest extends ServerTestCase
     //   - PHPUnit — the Server suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /** @dataProvider privateFiles */
+    #[DataProvider('privateFiles')]
     public function testFilesOutsidePublicAreNeverServed(string $path, string $inside): void
     {
         $response = $this->http->get($path);
@@ -82,7 +83,7 @@ class ProtectionTest extends ServerTestCase
     //   - testFilesOutsidePublicAreNeverServed (above)
     // -----------------------------------------------------------
 
-    public function privateFiles(): array
+    public static function privateFiles(): array
     {
         return [
             'the environment'        => ['/.env', 'APP_KEY'],
@@ -91,7 +92,7 @@ class ProtectionTest extends ServerTestCase
             'composer.json'          => ['/composer.json', 'laravel/framework'],
             'composer.lock'          => ['/composer.lock', 'content-hash'],
             'artisan'                => ['/artisan', 'LARAVEL_START'],
-            'server.php'             => ['/server.php', 'Laravel - A PHP Framework'],
+            'server.php'             => ['/server.php', 'REQUEST_URI'],
             'the configuration'      => ['/config/app.php', 'APP_DEBUG'],
             'the node client'        => ['/app/Services/DaemonClient.php', 'json_rpc'],
             'the log'                => ['/storage/logs/laravel.log', 'WARNING'],

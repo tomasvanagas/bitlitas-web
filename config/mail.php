@@ -3,11 +3,12 @@
 // -----------------------------------------------------------
 //  [*] mail — how mail would be sent
 //
-//  Laravel's scaffold mail settings, pointing at Mailgun's
-//  SMTP server with a placeholder sender. The app sends no
-//  mail; only the scaffold's password reset would, on routes
-//  that do not work. The container has no outside network
-//  either, beyond bitlitas-exit's route to the node.
+//  One SMTP mailer: Mailgun's server, port 587 with TLS, and
+//  the scaffold's placeholder sender. The driver key at the
+//  top level makes Laravel build its default mailer from
+//  this whole file, so the framework's own mailers list goes
+//  unused. The app sends no mail, and the container has no
+//  outside network beyond bitlitas-exit's route to the node.
 //
 //  Used by:
 //    - Laravel's configuration — read as config('mail.…') by

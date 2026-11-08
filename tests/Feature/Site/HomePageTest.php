@@ -21,6 +21,7 @@
 
 namespace Tests\Feature\Site;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\FeatureTestCase;
 use Tests\Support\Chain;
 
@@ -70,13 +71,13 @@ class HomePageTest extends FeatureTestCase
         $response = $this->get('/');
 
         $response->assertStatus(200);
-        $response->assertSee('<title>BitLitas - Lietuviška kriptovaliuta</title>');
-        $response->assertSee('<div class="progress-value">0 %</div>');
-        $response->assertSee('Iš 18.3 mln. jau iškasta 0</p>');
-        $response->assertSee('Dabartinis blokų aukštis: 0</li>');
-        $response->assertSee('Apdovanojimas už paskutinį bloką: 0 LIT</li>');
-        $response->assertSee('Tinklo greitis <span class="label label-success">0</span>');
-        $response->assertSee('Sunkumas <span class="label label-warning">0</span>');
+        $response->assertSee('<title>BitLitas - Lietuviška kriptovaliuta</title>', false);
+        $response->assertSee('<div class="progress-value">0 %</div>', false);
+        $response->assertSee('Iš 18.3 mln. jau iškasta 0</p>', false);
+        $response->assertSee('Dabartinis blokų aukštis: 0</li>', false);
+        $response->assertSee('Apdovanojimas už paskutinį bloką: 0 LIT</li>', false);
+        $response->assertSee('Tinklo greitis <span class="label label-success">0</span>', false);
+        $response->assertSee('Sunkumas <span class="label label-warning">0</span>', false);
     }
 
 
@@ -97,10 +98,10 @@ class HomePageTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /** @dataProvider minedFigures */
+    #[DataProvider('minedFigures')]
     public function testMinedCoinsAreShortened(string $mined, string $shown): void
     {
-        $this->pageWith(['mined' => $mined])->assertSee("Iš 18.3 mln. jau iškasta $shown</p>");
+        $this->pageWith(['mined' => $mined])->assertSee("Iš 18.3 mln. jau iškasta $shown</p>", false);
     }
 
 
@@ -118,7 +119,7 @@ class HomePageTest extends FeatureTestCase
     //   - testMinedCoinsAreShortened (above)
     // -----------------------------------------------------------
 
-    public function minedFigures(): array
+    public static function minedFigures(): array
     {
         return [
             'nothing'             => ['0', '0'],
@@ -149,10 +150,10 @@ class HomePageTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /** @dataProvider minedShares */
+    #[DataProvider('minedShares')]
     public function testMinedShareIsATenthOfAPercent(string $mined, string $share): void
     {
-        $this->pageWith(['mined' => $mined])->assertSee("<div class=\"progress-value\">$share %</div>");
+        $this->pageWith(['mined' => $mined])->assertSee("<div class=\"progress-value\">$share %</div>", false);
     }
 
 
@@ -170,7 +171,7 @@ class HomePageTest extends FeatureTestCase
     //   - testMinedShareIsATenthOfAPercent (above)
     // -----------------------------------------------------------
 
-    public function minedShares(): array
+    public static function minedShares(): array
     {
         return [
             'nothing'            => ['0', '0'],
@@ -197,10 +198,10 @@ class HomePageTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /** @dataProvider hashRates */
+    #[DataProvider('hashRates')]
     public function testHashRateIsShortenedToKilohashes(string $hashRate, string $shown): void
     {
-        $this->pageWith(['hash_rate' => $hashRate])->assertSee("Tinklo greitis <span class=\"label label-success\">$shown</span>");
+        $this->pageWith(['hash_rate' => $hashRate])->assertSee("Tinklo greitis <span class=\"label label-success\">$shown</span>", false);
     }
 
 
@@ -218,7 +219,7 @@ class HomePageTest extends FeatureTestCase
     //   - testHashRateIsShortenedToKilohashes (above)
     // -----------------------------------------------------------
 
-    public function hashRates(): array
+    public static function hashRates(): array
     {
         return [
             'a thousand'        => ['1000', '1 kH/s'],
@@ -245,8 +246,8 @@ class HomePageTest extends FeatureTestCase
 
     public function testDifficultyIsGroupedInThousands(): void
     {
-        $this->pageWith(['difficulty' => '1160'])->assertSee('Sunkumas <span class="label label-warning">1,160</span>');
-        $this->pageWith(['difficulty' => '54328679347'])->assertSee('Sunkumas <span class="label label-warning">54,328,679,347</span>');
+        $this->pageWith(['difficulty' => '1160'])->assertSee('Sunkumas <span class="label label-warning">1,160</span>', false);
+        $this->pageWith(['difficulty' => '54328679347'])->assertSee('Sunkumas <span class="label label-warning">54,328,679,347</span>', false);
     }
 
 
@@ -273,8 +274,8 @@ class HomePageTest extends FeatureTestCase
 
         $response = $this->get('/');
 
-        $response->assertSee('Dabartinis blokų aukštis: 2499</li>');
-        $response->assertSee('Apdovanojimas už paskutinį bloką: ' . (Chain::reward(2499) / Chain::ATOMIC_UNITS) . ' LIT</li>');
+        $response->assertSee('Dabartinis blokų aukštis: 2499</li>', false);
+        $response->assertSee('Apdovanojimas už paskutinį bloką: ' . (Chain::reward(2499) / Chain::ATOMIC_UNITS) . ' LIT</li>', false);
     }
 
 
@@ -298,14 +299,14 @@ class HomePageTest extends FeatureTestCase
     {
         $response = $this->pageWith([]);
 
-        $response->assertSee('<a class="btn btn-prepend" href="downloads/v1/bitlitas.tar.gz">');
-        $response->assertSee('<a class="btn btn-prepend" href="downloads/v1/bitlitas.exe">');
-        $response->assertSee('v1.0.2');
-        $response->assertSee('href="https://play.google.com/store/apps/details?id=com.litas.ltlwallet"');
-        $response->assertSee('href="https://github.com/bitlitas/"');
-        $response->assertSee('href="https://discordapp.com/invite/mfmyGe6"');
-        $response->assertSee('<a href="/">PAGRINDINIS</a>');
-        $response->assertSee('<a href="https://explorer.bitlitas.lt">BLOKAI</a>');
+        $response->assertSee('<a class="btn btn-prepend" href="downloads/v1/bitlitas.tar.gz">', false);
+        $response->assertSee('<a class="btn btn-prepend" href="downloads/v1/bitlitas.exe">', false);
+        $response->assertSee('v1.0.2', false);
+        $response->assertSee('href="https://play.google.com/store/apps/details?id=com.litas.ltlwallet"', false);
+        $response->assertSee('href="https://github.com/bitlitas/"', false);
+        $response->assertSee('href="https://discordapp.com/invite/mfmyGe6"', false);
+        $response->assertSee('<a href="/">PAGRINDINIS</a>', false);
+        $response->assertSee('<a href="https://explorer.bitlitas.lt">BLOKAI</a>', false);
     }
 
 
@@ -328,9 +329,9 @@ class HomePageTest extends FeatureTestCase
     {
         $response = $this->pageWith([]);
 
-        $response->assertSee('Algoritmas: CryptoNight, Monero');
-        $response->assertSee('Bloko laikas: 60 sek.');
-        $response->assertSee('*Bet ne mažiau 0.3 LIT už bloką');
+        $response->assertSee('Algoritmas: CryptoNight, Monero', false);
+        $response->assertSee('Bloko laikas: 60 sek.', false);
+        $response->assertSee('*Bet ne mažiau 0.3 LIT už bloką', false);
     }
 
 

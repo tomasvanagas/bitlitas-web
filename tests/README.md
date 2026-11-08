@@ -1,7 +1,7 @@
 # Laravel app regression tests
 
-The PHPUnit suite of the bitlitas.lt Laravel app (Laravel 5.5.33 on PHP
-7.4.33). It runs in one throwaway container with no network, built from
+The PHPUnit suite of the bitlitas.lt Laravel app (Laravel 13.40.0 on PHP
+8.4.27). It runs in one throwaway container with no network, built from
 the production image. Inside that container it starts three things:
 
 - MySQL 5.7.44, the server of the `bitlitas-mysql` service, with the schema
@@ -9,7 +9,7 @@ the production image. Inside that container it starts three things:
 - a stand-in for the full node;
 - nginx with php-fpm, serving the app the way production does.
 
-Then it runs PHPUnit 7.5.
+Then it runs PHPUnit 13.4.
 
 ## Running
 
@@ -109,39 +109,40 @@ Five files outside `tests/` belong to the suite:
   - Once a fix makes the closure pass, the test fails with "no longer
     reproduces". That failure is the cue to drop the pin and move the test
     into its home file.
-- **House style.** The banners and spacing follow the cyberphish suite: a
-  banner on every file, class and method; 2 blank lines after the file
-  banner, 8 before the class, 6 between members. The code keeps to PHP 7.2
-  syntax.
-- **PHPUnit 7.5.** It is the last line Laravel 5.5's `TestCase` works with,
-  because PHPUnit 8 requires `setUp(): void`.
-  - Composer flags every 7.5 release for CVE-2026-24765, unsafe
-    deserialization in PHPT code coverage.
-  - `container/composer.json` ignores that one advisory, with the reason:
-    the suite runs no PHPT tests and no coverage, and runs offline.
-  - Laravel's own `artisan()` helper cannot run on PHP 7.4 (see Found but
-    not pinned), so commands go through `TestCase::console`, as
-    `php artisan` runs them.
+- **House style.** The banners and spacing follow the house-comments skill
+  and its PHP 8.4 reference: a banner on every file, class and method; 2
+  blank lines after the file banner, 8 before the class, 6 between members.
+  From the repository root, this gate must print `-- 0 violation(s)`:
+
+  ```sh
+  python3 -B ../../.claude/skills/house-comments/scripts/house_check_php84.py --new tests
+  ```
+
+- **PHPUnit 13.** Data providers are named by `#[DataProvider]` attributes
+  and are `public static`; PHPUnit 13 reads no annotations. `assertSee`
+  escapes its needle unless told not to, so an HTML needle is passed with
+  `false`. Commands run through `TestCase::console`, as `php artisan` runs
+  them, rather than through Laravel's `artisan()` helper, which mocks the
+  output.
 
 ## Pinned defects
 
-Writing the suite turned up 13 defects. Each is pinned by a test that
-reproduces it, and none is fixed. The fix column is a suggestion.
+Each defect below is pinned by a test that reproduces it, and none is
+fixed. The fix column is a suggestion.
 
 | Id | Test | Defect | Fix |
 |---|---|---|---|
 | `display-errors` | `PlatformDefectsTest::testPhpFpmShowsNoErrorsToVisitors` | The image has no `php.ini`, so php-fpm runs with `display_errors` On. An error PHP raises before Laravel's handler prints into the page with the server's paths | Dockerfile: `mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"` |
 | `fpm-listens-everywhere` | `PlatformDefectsTest::testPhpFpmListensOnlyForNginx` | The official image's `zz-docker.conf` sets `listen = 9000` on every interface. Any container on `bitlitas-isolated` could send php-fpm FastCGI requests of its own, though nginx in the same container is its only client | Dockerfile: `sed -i 's/^listen = 9000$/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/zz-docker.conf` |
-| `debug-by-default` | `PlatformDefectsTest::testDebugStaysOffWithoutAppDebug` | `config/app.php` defaults debug mode to true (since 2018). Only `APP_DEBUG=false` in `docker-compose.yml` keeps the code, stack trace and request of every error away from visitors | `'debug' => env('APP_DEBUG', false)` |
+| `debug-by-default` | `PlatformDefectsTest::testDebugStaysOffWithoutAppDebug` | `config/app.php` defaults debug mode to true. Only `APP_DEBUG=false` in `docker-compose.yml` keeps the code, stack trace and request of every error away from visitors | `'debug' => env('APP_DEBUG', false)` |
 | `home-without-stats` | `SiteDefectsTest::testPageOpensBeforeTheSeed` | The home page is a 500 until `seedDB.sh` has run: `HomeController` reads the figures and the last block without checking that they exist | Fall back to 0 for a missing figure or block |
 | `mined-threshold-fractions` | `SiteDefectsTest::testFractionsJustUnderAStepKeepTheirScale` | 999.5 coins read "0 tūkst." and 999,999.5 read "0 mln.". The mined figure has decimals, but the steps are `> 999` and `<= 999999` | Steps at `>= 1000` and `>= 1000000` |
 | `hash-rate-no-unit` | `SiteDefectsTest::testSmallHashRateNamesItsUnit` | Under 1,000 H/s the rate has no unit. The live site shows a bare "19" | Append " H/s" |
 | `hash-rate-mega-unit` | `SiteDefectsTest::testMillionsOfHashesAreMegahashes` | Millions of hashes read "mH/s" (milli-hashes) | "MH/s" |
 | `description-typo` | `SiteDefectsTest::testDescriptionSpellsKriptovaliuta` | The meta description writes "kriptavaliuta" | "kriptovaliuta" in `core/layout.blade.php` |
 | `html-lang` | `SiteDefectsTest::testPageDeclaresItsLanguage` | Neither html tag of the layout declares the page Lithuanian | `lang="lt"` on both |
-| `account-routes` | `RouteDefectsTest::testAccountRoutesAreNotFound` | `Auth::routes()` and the scaffold's `api/user` answer with 500s (the Auth controllers, the User model and the users table don't exist), and `api/user` redirects to that login | Drop `Auth::routes()` and the `api/user` route |
-| `route-list` | `RouteDefectsTest::testRouteListOpens` | `php artisan route:list` stops at the missing `LoginController` | The same as `account-routes` |
-| `expose-php` | `ServerDefectsTest::testAnswersDoNotNamePhp` | Every answer of the app carries `X-Powered-By: PHP/7.4.33` | `php.ini` with `expose_php = Off` |
+| `account-routes` | `RouteDefectsTest::testAccountRoutesAreNotFound` | The scaffold's `api/user` is routed, though the app has no accounts: a 401 without a token, and a 500 with one, since the token guard looks for an `App\User` model that does not exist | Drop the `api/user` route |
+| `expose-php` | `ServerDefectsTest::testAnswersDoNotNamePhp` | Every answer of the app carries `X-Powered-By: PHP/8.4.27` | `php.ini` with `expose_php = Off` |
 | `session-cookie-secure` | `ServerDefectsTest::testCookiesAreSecure` | The session and XSRF cookies set on every page are not Secure, though the site is HTTPS-only | `SESSION_SECURE_COOKIE=true` in `docker-compose.yml` |
 
 ## Found but not pinned
@@ -154,11 +155,11 @@ repository, harmless today, or not testable here:
   refuses it and only the second stand-in lands.
   `SchemaTest::testBlockWithoutATimestampIsRefused` holds the behaviour;
   the script lives in the stack, outside this repository.
-- **`Artisan::call()` fails on PHP 7.4.** Laravel 5.5's `Artisan::call()`,
-  and with it the `artisan()` test helper, breaks because symfony/console
-  3.4.4's `ArrayInput` indexes integer keys as strings. The app never calls
-  a command programmatically, and `php artisan` goes through `ArgvInput`,
-  so production is unaffected.
+- **MySQL 5.7 is out of support.** The `bitlitas-mysql` service runs
+  `mysql:5.7`, MySQL 5.7.44, which gets no security fixes since October
+  2023; the test container runs the same server, so the suite cannot show
+  a difference. Moving it to MySQL 8.4 is a change to the stack and its
+  data, outside this repository.
 - **Glyphicons point at missing fonts.** `grid.css` declares the Glyphicons
   font from `../fonts/`, which is not shipped. No element uses a glyphicon,
   so no browser asks for it.

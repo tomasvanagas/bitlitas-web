@@ -4,12 +4,11 @@
 //  [*] RouteInventoryTest — every route the app answers
 //
 //  Reads the live route table and holds it to the list: the
-//  home page, the sync's /blokai, the account routes
-//  Auth::routes() adds and the api/user route of Laravel's
-//  scaffold. A route added or dropped without a decision
-//  fails here. The account routes and api/user lead nowhere
-//  — their controllers and the users table were never part
-//  of this app — and are pinned in RouteDefectsTest.
+//  home page, the sync's /blokai and the api/user route of
+//  Laravel's scaffold. A route added or dropped without a
+//  decision fails here. api/user leads nowhere — the app has
+//  no users table — and is pinned in RouteDefectsTest; php
+//  artisan route:list prints the table.
 //
 //  Used by:
 //    - PHPUnit — the Feature suite (runTests.sh)
@@ -34,11 +33,9 @@ use Tests\FeatureTestCase;
 // -----------------------------------------------------------
 //
 // Routes are named "METHOD uri" here, HEAD left out — Laravel
-// adds it to every GET. Middleware is read from the route
-// alone: gathering a controller's middleware (the account
-// controllers' guest, in Laravel's scaffold) would build the
-// controller, and the account routes' controllers do not
-// exist.
+// adds it to every GET. Middleware is what the route itself
+// carries — its group's and what the route files add — read
+// without building its controller.
 //
 //   routes — the live table, by name
 //
@@ -51,18 +48,9 @@ class RouteInventoryTest extends FeatureTestCase
 
     // Every route, with its action and middleware
     private const ROUTES = [
-        'GET /'                      => ['App\Http\Controllers\HomeController@index', ['web']],
-        'GET blokai'                 => ['App\Http\Controllers\BlocksController@index', ['web', 'throttle:10,1']],
-        'GET login'                  => ['App\Http\Controllers\Auth\LoginController@showLoginForm', ['web']],
-        'POST login'                 => ['App\Http\Controllers\Auth\LoginController@login', ['web']],
-        'POST logout'                => ['App\Http\Controllers\Auth\LoginController@logout', ['web']],
-        'GET register'               => ['App\Http\Controllers\Auth\RegisterController@showRegistrationForm', ['web']],
-        'POST register'              => ['App\Http\Controllers\Auth\RegisterController@register', ['web']],
-        'GET password/reset'         => ['App\Http\Controllers\Auth\ForgotPasswordController@showLinkRequestForm', ['web']],
-        'POST password/email'        => ['App\Http\Controllers\Auth\ForgotPasswordController@sendResetLinkEmail', ['web']],
-        'GET password/reset/{token}' => ['App\Http\Controllers\Auth\ResetPasswordController@showResetForm', ['web']],
-        'POST password/reset'        => ['App\Http\Controllers\Auth\ResetPasswordController@reset', ['web']],
-        'GET api/user'               => ['Closure', ['api', 'auth:api']],
+        'GET /'        => ['App\Http\Controllers\HomeController@index', ['web']],
+        'GET blokai'   => ['App\Http\Controllers\BlocksController@index', ['web', 'throttle:10,1']],
+        'GET api/user' => ['Closure', ['api', 'auth:api']],
     ];
 
 
@@ -109,7 +97,32 @@ class RouteInventoryTest extends FeatureTestCase
         $response = $this->get('/no/such/page');
 
         $response->assertStatus(404);
-        $response->assertSee('Sorry, the page you are looking for could not be found.');
+        $response->assertSee('Not Found');
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testRouteListPrintsTheTable
+    // -----------------------------------------------------------
+    //
+    // php artisan route:list prints the table. It builds every
+    // route's controller to gather its middleware, so a route
+    // naming a controller the app lacks would stop it.
+    //
+    // Used by:
+    //   - PHPUnit — the Feature suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testRouteListPrintsTheTable(): void
+    {
+        list($code, $lines) = $this->console('route:list');
+
+        $this->assertSame(0, $code, implode(' ', array_slice($lines, 0, 2)));
+        $this->assertStringContainsString('blokai', implode("\n", $lines));
     }
 
 

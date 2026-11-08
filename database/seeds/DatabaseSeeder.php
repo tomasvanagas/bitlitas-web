@@ -6,8 +6,7 @@
 //  Seeds nothing. The rows a fresh database starts with —
 //  the three figures at 0 and a stand-in block 0 — come from
 //  seedDB.sh, which writes them with the mysql client
-//  instead; the scaffold's call of a users seeder was
-//  switched off.
+//  instead.
 //
 //  Used by:
 //    - php artisan db:seed — which nothing runs at the moment

@@ -10,11 +10,10 @@
 //
 //    GET /api/user — the token's user, behind auth:api
 //
-//  Known bug (medium): a visitor without a token is
-//  redirected to /login, which is a 500 itself, and one with
-//  a token gets a 500, since there is no users table to look
-//  the token up in (api.php:27) [account-routes]. Fix: drop
-//  the route.
+//  Known bug (medium): the route is dead weight. Without a
+//  token it answers 401; with one, the token guard looks for
+//  an App\User model that does not exist, and the answer is a
+//  500 (api.php:26) [account-routes]. Fix: drop the route.
 //
 //  Used by:
 //    - RouteServiceProvider::mapApiRoutes — loads it under

@@ -63,7 +63,7 @@ class ProductionModeTest extends ServerTestCase
         $response = $this->openBrokenHomePage();
 
         $this->assertSame(500, $response->status);
-        $this->assertStringContainsString('Whoops, looks like something went wrong.', $response->body);
+        $this->assertStringContainsString('Server Error', $response->body);
         preg_match('/^APP_KEY=(.+)$/m', file_get_contents(base_path('.env')), $key);
         foreach (['/var/www/html', 'SQLSTATE', 'statistics', 'Stack trace', 'HomeController', $key[1], getenv('DB_PASSWORD')] as $leak) {
             $this->assertStringNotContainsStringIgnoringCase($leak, $response->body);
@@ -92,7 +92,7 @@ class ProductionModeTest extends ServerTestCase
             $this->openBrokenHomePage();
         });
 
-        $this->assertRegExp("/production\\.ERROR: SQLSTATE\\[42S02\\].*Table 'bitlitas\\.statistics' doesn't exist/", $written);
+        $this->assertMatchesRegularExpression("/production\\.ERROR: SQLSTATE\\[42S02\\].*Table 'bitlitas\\.statistics' doesn't exist/", $written);
     }
 
 

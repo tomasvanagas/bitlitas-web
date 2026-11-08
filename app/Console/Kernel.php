@@ -53,8 +53,7 @@ class Kernel extends ConsoleKernel
     // schedule
     // -----------------------------------------------------------
     //
-    // The commands schedule:run would start: none. The
-    // scaffold's hourly inspire was switched off.
+    // The commands schedule:run would start: none.
     //
     // Used by:
     //   - schedule:run — which nothing runs at the moment

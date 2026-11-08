@@ -45,7 +45,7 @@ class BlocksController extends Controller
 
     // Blocks stored per visit, which keeps one request well
     // inside PHP's time limit; bitlitas:sync has no limit
-    const BLOCKS_PER_REQUEST = 5000;
+    private const BLOCKS_PER_REQUEST = 5000;
 
 
 

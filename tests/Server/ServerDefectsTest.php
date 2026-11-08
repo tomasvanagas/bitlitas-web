@@ -50,7 +50,7 @@ class ServerDefectsTest extends ServerTestCase
     // -----------------------------------------------------------
     //
     // [expose-php] The app's answers carry no X-Powered-By.
-    // PHP adds "X-Powered-By: PHP/7.4.33" to every one,
+    // PHP adds "X-Powered-By: PHP/8.4.27" to every one,
     // naming a release with known flaws.
     //
     // Used by:

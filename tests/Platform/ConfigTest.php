@@ -252,8 +252,9 @@ class ConfigTest extends TestCase
     // -----------------------------------------------------------
     //
     // A config file evaluated with the named variables unset,
-    // as in a container started without them; they are put
-    // back afterwards.
+    // as in a container started without them — in the process
+    // environment, and in $_SERVER and $_ENV, which Laravel's
+    // env() reads too; all three are put back afterwards.
     //
     // Used by:
     //   - testNodeSettingsDefaultToALocalNode (above)
@@ -264,15 +265,22 @@ class ConfigTest extends TestCase
     {
         $saved = [];
         foreach ($names as $name) {
-            $saved[$name] = getenv($name);
+            $saved[$name] = [getenv($name), $_SERVER[$name] ?? null, $_ENV[$name] ?? null];
             putenv($name);
+            unset($_SERVER[$name], $_ENV[$name]);
         }
         try {
             return require config_path($file);
         } finally {
-            foreach ($saved as $name => $value) {
-                if ($value !== false) {
-                    putenv("$name=$value");
+            foreach ($saved as $name => [$env, $server, $envArray]) {
+                if ($env !== false) {
+                    putenv("$name=$env");
+                }
+                if ($server !== null) {
+                    $_SERVER[$name] = $server;
+                }
+                if ($envArray !== null) {
+                    $_ENV[$name] = $envArray;
                 }
             }
         }

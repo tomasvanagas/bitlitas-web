@@ -24,6 +24,7 @@ namespace Tests\Feature\Sync;
 use App\Blocks;
 use App\Services\DaemonException;
 use App\Services\NetworkSync;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\FeatureTestCase;
 use Tests\Support\Chain;
 
@@ -483,7 +484,7 @@ class NetworkSyncTest extends FeatureTestCase
     //   - PHPUnit — the Feature suite (runTests.sh)
     // -----------------------------------------------------------
 
-    /** @dataProvider damage */
+    #[DataProvider('damage')]
     public function testDamagedHeadersStoreNothingOfTheirBatch(string $mode): void
     {
         $this->fakeDaemon(['height' => 2500, 'corrupt' => $mode, 'corrupt_call' => 2]);
@@ -509,7 +510,7 @@ class NetworkSyncTest extends FeatureTestCase
     //   - testDamagedHeadersStoreNothingOfTheirBatch (above)
     // -----------------------------------------------------------
 
-    public function damage(): array
+    public static function damage(): array
     {
         return [
             'a gap'          => ['gap'],

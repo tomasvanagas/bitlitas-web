@@ -5,13 +5,10 @@
 //
 //  The pinned defects of the route table (tests/README.md):
 //  each test states the wanted behaviour and stays
-//  incomplete while the defect reproduces. routes/web.php
-//  still calls Auth::routes(), and routes/api.php still has
-//  the scaffold's api/user, but the app has no accounts: no
-//  Auth controllers, no User model, no users table. The
-//  account pages are 500s, api/user sends visitors to that
-//  broken login, and php artisan route:list stops at the
-//  first missing controller.
+//  incomplete while the defect reproduces. The app has no
+//  accounts — no Auth controllers, no User model, no users
+//  table — yet routes/api.php has the scaffold's api/user,
+//  which returns the user of an API token.
 //
 //  Used by:
 //    - PHPUnit — the Feature suite (runTests.sh)
@@ -42,8 +39,9 @@ use Tests\FeatureTestCase;
 class RouteDefectsTest extends FeatureTestCase
 {
 
-    // The account routes and api/user, as a visitor would try
-    // them
+    // The paths of Laravel's account pages and api/user, as a
+    // visitor would try them — api/user with and without an
+    // API token
     private const DEAD = [
         'GET /login',
         'POST /login',
@@ -52,6 +50,7 @@ class RouteDefectsTest extends FeatureTestCase
         'GET /password/reset/some-token',
         'POST /logout',
         'GET /api/user',
+        'GET /api/user?api_token=some-token',
     ];
 
 
@@ -64,9 +63,9 @@ class RouteDefectsTest extends FeatureTestCase
     // -----------------------------------------------------------
     //
     // [account-routes] A site without accounts answers its
-    // account paths with 404. Every one of them is a 500 —
-    // the controller class does not exist — or, for
-    // api/user, a redirect to the 500 of /login.
+    // account paths with 404. The account pages do; api/user
+    // is a 401 without a token, and with one the token guard
+    // looks for an App\User model that does not exist — a 500.
     //
     // Used by:
     //   - PHPUnit — the Feature suite (runTests.sh)
@@ -84,32 +83,6 @@ class RouteDefectsTest extends FeatureTestCase
                 return "$route $status";
             }, array_keys($statuses), $statuses));
             $this->assertSame(array_fill_keys(self::DEAD, 404), $statuses, "the account paths answer $answers");
-        });
-    }
-
-
-
-
-
-
-    // -----------------------------------------------------------
-    // testRouteListOpens
-    // -----------------------------------------------------------
-    //
-    // [route-list] php artisan route:list prints the table.
-    // It builds every route's controller to gather its
-    // middleware, and stops at LoginController, which does
-    // not exist.
-    //
-    // Used by:
-    //   - PHPUnit — the Feature suite (runTests.sh)
-    // -----------------------------------------------------------
-
-    public function testRouteListOpens(): void
-    {
-        $this->pinDefect('route-list', function () {
-            list($code, $lines) = $this->console('route:list');
-            $this->assertSame(0, $code, 'route:list fails: ' . implode(' ', array_slice($lines, 0, 2)));
         });
     }
 }

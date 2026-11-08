@@ -4,12 +4,12 @@
 //  [*] app — the application's own settings
 //
 //  Its name, environment and debug switch, the public URL,
-//  the clock and the language, the encryption key, the log,
-//  and the service providers and facades the app boots
-//  with. The environment comes from the .env file the
-//  Dockerfile writes and from what docker-compose.yml sets;
-//  the image ships APP_ENV=production and a key generated at
-//  build time.
+//  the clock and the language, the encryption key, two log
+//  keys nothing reads, and the service providers and
+//  facades the app boots with. The environment comes from
+//  the .env file the Dockerfile writes and from what
+//  docker-compose.yml sets; the image ships
+//  APP_ENV=production and a key generated at build time.
 //
 //  Known bug (medium): debug mode defaults to on when
 //  APP_DEBUG is missing (app.php:39), so a container started
@@ -58,16 +58,18 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
-    // One log file, storage/logs/laravel.log — a bind mount in
-    // production — written at every level from debug up
+    // Two keys nothing reads: the app has no
+    // config/logging.php, so Laravel logs by the framework's
+    // default — one file, storage/logs/laravel.log, a bind
+    // mount in production, at every level from debug up
     'log' => env('APP_LOG', 'single'),
 
     'log_level' => env('APP_LOG_LEVEL', 'debug'),
 
-    // The providers the app boots with. Package discovery is
-    // off (the Dockerfile writes an empty manifest), so a
-    // package's provider runs only when it is listed here, and
-    // none is
+    // The providers the app boots with. Package discovery,
+    // which runs when the image is built, adds the providers of
+    // three packages to these: tinker's command, Carbon's
+    // locale sync and Termwind's console styles
     'providers' => [
 
         // The framework's own

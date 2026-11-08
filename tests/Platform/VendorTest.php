@@ -6,12 +6,12 @@
 //  The Dockerfile installs composer.lock with --no-dev, so
 //  the vendor folder holds the production packages only: no
 //  PHPUnit, no Mockery, no Faker, no Whoops — Whoops' debug
-//  page lists the server's environment, secrets included.
-//  It also writes an empty package manifest and skips
-//  composer's scripts, because Laravel 5.5's package
-//  discovery cannot read the installed.json Composer 2
-//  writes: the app runs only the providers config/app.php
-//  lists.
+//  page lists the server's environment, secrets included —
+//  and no Ignition, whose debug page has had a remote code
+//  execution of its own (CVE-2021-3129). Composer's scripts
+//  run Laravel's package discovery, which adds the providers
+//  of three production packages to the ones config/app.php
+//  lists, and of no development one.
 //
 //  Used by:
 //    - PHPUnit — the Platform suite (runTests.sh)
@@ -43,14 +43,29 @@ use Tests\TestCase;
 class VendorTest extends TestCase
 {
 
-    // The development packages of composer.json, which must
-    // never reach the image
+    // The development and error-page packages a Laravel app
+    // may pull in, the app's own require-dev among them; none
+    // may reach the image
     private const DEV_PACKAGES = [
+        'facade/ignition',
+        'fakerphp/faker',
         'filp/whoops',
         'fzaninotto/faker',
         'mockery/mockery',
+        'nunomaduro/collision',
         'phpunit/phpunit',
+        'spatie/ignition',
+        'spatie/laravel-ignition',
         'symfony/thanks',
+    ];
+
+    // The packages discovery registers, with their providers:
+    // tinker's command, Carbon's locale sync, Termwind's
+    // console styles
+    private const DISCOVERED = [
+        'laravel/tinker'      => ['providers' => ['Laravel\\Tinker\\TinkerServiceProvider']],
+        'nesbot/carbon'       => ['providers' => ['Carbon\\Laravel\\ServiceProvider']],
+        'nunomaduro/termwind' => ['providers' => ['Termwind\\Laravel\\TermwindServiceProvider']],
     ];
 
 
@@ -73,7 +88,7 @@ class VendorTest extends TestCase
     public function testNoDevelopmentPackageIsInstalled(): void
     {
         foreach (self::DEV_PACKAGES as $package) {
-            $this->assertDirectoryNotExists(base_path("vendor/$package"), "$package is installed");
+            $this->assertDirectoryDoesNotExist(base_path("vendor/$package"), "$package is installed");
         }
 
         $installed = json_decode(file_get_contents(base_path('vendor/composer/installed.json')), true);
@@ -94,7 +109,7 @@ class VendorTest extends TestCase
     // Every package composer.lock pins is installed at exactly
     // the locked version — the image is built from the lock,
     // never from fresh resolution — and the framework is
-    // Laravel 5.5.33.
+    // Laravel 13.40.0.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
@@ -109,7 +124,7 @@ class VendorTest extends TestCase
         foreach ($lock['packages'] as $package) {
             $this->assertSame($package['version'], $versions[$package['name']] ?? null, $package['name']);
         }
-        $this->assertSame('v5.5.33', $versions['laravel/framework']);
+        $this->assertSame('v13.40.0', $versions['laravel/framework']);
     }
 
 
@@ -118,20 +133,21 @@ class VendorTest extends TestCase
 
 
     // -----------------------------------------------------------
-    // testPackageDiscoveryIsSwitchedOff
+    // testDiscoveryRegistersNoDevelopmentProvider
     // -----------------------------------------------------------
     //
-    // The package manifest is the empty one the Dockerfile
-    // writes, so only config/app.php's providers run: the
-    // framework's own and the app's four.
+    // The package manifest, written by discovery when the
+    // image is built, holds exactly the three packages of
+    // DISCOVERED; config/app.php adds the framework's
+    // providers and the app's four.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
     // -----------------------------------------------------------
 
-    public function testPackageDiscoveryIsSwitchedOff(): void
+    public function testDiscoveryRegistersNoDevelopmentProvider(): void
     {
-        $this->assertSame([], require base_path('bootstrap/cache/packages.php'));
+        $this->assertSame(self::DISCOVERED, require base_path('bootstrap/cache/packages.php'));
 
         $own = array_values(array_filter(config('app.providers'), function (string $provider) {
             return strpos($provider, 'Illuminate\\') !== 0;

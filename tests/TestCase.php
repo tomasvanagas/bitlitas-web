@@ -123,10 +123,10 @@ abstract class TestCase extends LaravelTestCase
     // handle, with its words in an ArgvInput — the way
     // `php artisan` runs it — and returns the exit code and the
     // printed lines, blank ones left out. Laravel's own
-    // artisan() helper cannot be used: it hands the command to
-    // symfony/console 3.4.4's ArrayInput, which indexes its
-    // integer keys as strings and fails on PHP 7.4 before any
-    // command runs (tests/README.md, Found but not pinned).
+    // artisan() helper hands the command to an ArrayInput and,
+    // by default, a mocked output that a test must script in
+    // advance; this one runs it as the command line does and
+    // keeps what it printed.
     //
     // Used by:
     //   - SyncCommandTest (Feature/Sync/)

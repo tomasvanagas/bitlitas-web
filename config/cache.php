@@ -16,6 +16,8 @@
 // -----------------------------------------------------------
 
 
+use Illuminate\Support\Str;
+
 return [
 
     // The store used when none is named: files
@@ -72,7 +74,7 @@ return [
     // apart: the app's name as a slug
     'prefix' => env(
         'CACHE_PREFIX',
-        str_slug(env('APP_NAME', 'laravel'), '_').'_cache'
+        Str::slug(env('APP_NAME', 'laravel'), '_').'_cache'
     ),
 
 ];

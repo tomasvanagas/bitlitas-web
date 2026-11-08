@@ -6,17 +6,15 @@
   test inside a rolled-back transaction, and Server talks to the real nginx
   and php-fpm over HTTP. The env values switch the in-process app to
   Laravel's testing setup without overriding what run.sh exports; php-fpm
-  keeps the production environment run.sh gives it. verbose lists every
-  pinned known defect after a run.
+  keeps the production environment run.sh gives it.
+  displayDetailsOnIncompleteTests lists every pinned known defect after a
+  run.
 -->
 <phpunit bootstrap="tests/bootstrap.php"
          colors="true"
-         verbose="true"
-         cacheResult="false"
+         displayDetailsOnIncompleteTests="true"
+         recordTestRunHistory="false"
          beStrictAboutOutputDuringTests="true"
-         convertErrorsToExceptions="true"
-         convertNoticesToExceptions="true"
-         convertWarningsToExceptions="true"
 >
     <testsuites>
         <testsuite name="Platform">
