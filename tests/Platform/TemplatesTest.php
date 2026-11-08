@@ -6,12 +6,15 @@
 //  The site is one page: welcome.blade.php inside
 //  core/layout.blade.php, with core/footer.blade.php. Every
 //  template compiles to valid PHP; every file of the site's
-//  own that the page links — its stylesheets and script, its
-//  pictures, the background film, the two wallet downloads
-//  — ships in public/, and so does every file main.css
-//  imports or points to. The downloads are the 2018 v1.0.2
-//  wallets: a tarball holding bitlitasd and the GUI wallet,
-//  and a Windows executable.
+//  own that the page links — its stylesheets, its scripts
+//  and the libraries under js/lib, its pictures, the
+//  background film, the two wallet downloads — ships in
+//  public/, and so does every file main.css imports or
+//  points to, the Open Sans web font included. The page
+//  loads nothing from another server but the one embed that
+//  cannot be copied, Facebook's page widget. The downloads
+//  are the 2018 v1.0.2 wallets: a tarball holding bitlitasd
+//  and the GUI wallet, and a Windows executable.
 //
 //  Used by:
 //    - PHPUnit — the Platform suite (runTests.sh)
@@ -38,7 +41,8 @@ use Tests\TestCase;
 //
 // Reads resources/views and public/.
 //
-//   views — every template, by path
+//   views          — every template, by path
+//   stylesheetUrls — what a stylesheet loads
 //
 // Used by:
 //   - PHPUnit — the Platform suite (runTests.sh)
@@ -58,12 +62,24 @@ class TemplatesTest extends TestCase
         'img/favicon/icon.ico',
         'img/linux.png',
         'img/logo.png',
+        'img/paypal.png',
         'img/phone.png',
         'img/programoje.png',
         'img/windows.png',
+        'js/lib/bootstrap-3.3.6.min.js',
+        'js/lib/jquery-1.11.1.min.js',
+        'js/lib/modernizr-2.8.3.min.js',
+        'js/lib/respond-1.4.2.min.js',
         'js/main.js',
         'video/bitlitas.mp4',
         'video/bitlitas.webm',
+    ];
+
+    // The servers the page loads from besides its own:
+    // Facebook's, for its page widget, which cannot be copied
+    // to the site
+    private const OUTSIDE_HOSTS = [
+        'www.facebook.com',
     ];
 
 
@@ -138,11 +154,48 @@ class TemplatesTest extends TestCase
 
 
     // -----------------------------------------------------------
+    // testPageLoadsNothingElseFromOutside
+    // -----------------------------------------------------------
+    //
+    // Every script, picture, frame and stylesheet the page
+    // loads from another server comes from one of
+    // OUTSIDE_HOSTS; a library or a font fetched from a CDN
+    // fails here. Links a visitor follows are no loads and
+    // are left out.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testPageLoadsNothingElseFromOutside(): void
+    {
+        $hosts = [];
+        foreach ($this->views() as $path) {
+            $template = file_get_contents($path);
+            preg_match_all('/\bsrc=["\']((?:https?:)?\/\/[^"\']+)["\']/', $template, $sources);
+            preg_match_all('/<link\b[^>]*\bhref=["\']((?:https?:)?\/\/[^"\']+)["\']/', $template, $links);
+            foreach (array_merge($sources[1], $links[1]) as $address) {
+                $hosts[] = parse_url($address, PHP_URL_HOST);
+            }
+        }
+        $hosts = array_values(array_unique($hosts));
+        sort($hosts);
+
+        $this->assertSame(self::OUTSIDE_HOSTS, $hosts);
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
     // testStylesheetsReferencesShip
     // -----------------------------------------------------------
     //
-    // Everything main.css imports or points to, outside the
-    // web fonts it imports from Google, is in public/.
+    // Everything main.css imports or points to is in public/,
+    // and so are the two Open Sans files fonts.css points to,
+    // with the font's licence.
     //
     // Used by:
     //   - PHPUnit — the Platform suite (runTests.sh)
@@ -150,14 +203,43 @@ class TemplatesTest extends TestCase
 
     public function testStylesheetsReferencesShip(): void
     {
-        preg_match_all('/url\(\s*["\']?([^"\')]+)["\']?\s*\)/', file_get_contents(public_path('css/main.css')), $matches);
-        $local = array_values(array_filter($matches[1], function (string $url) {
-            return !preg_match('#^(https?:|data:)#', $url);
-        }));
+        $main = $this->stylesheetUrls('main.css');
+        $this->assertSame(['fonts.css', 'normalize.css', 'grid.css', '../img/bg-default.jpg'], $main);
 
-        $this->assertSame(['normalize.css', 'grid.css', '../img/bg-default.jpg'], $local);
-        foreach ($local as $url) {
+        $fonts = array_values(array_unique($this->stylesheetUrls('fonts.css')));
+        $this->assertSame(['../fonts/open-sans/open-sans-latin-ext.woff2', '../fonts/open-sans/open-sans-latin.woff2'], $fonts);
+
+        foreach (array_merge($main, $fonts, ['../fonts/open-sans/OFL.txt']) as $url) {
             $this->assertFileExists(public_path('css/' . $url));
+        }
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // testStylesheetsLoadNothingFromOutside
+    // -----------------------------------------------------------
+    //
+    // No stylesheet in public/css imports or points to another
+    // server: the fonts, pictures and stylesheets they name
+    // are all the site's own.
+    //
+    // Used by:
+    //   - PHPUnit — the Platform suite (runTests.sh)
+    // -----------------------------------------------------------
+
+    public function testStylesheetsLoadNothingFromOutside(): void
+    {
+        $stylesheets = array_map('basename', glob(public_path('css/*.css')));
+        $this->assertSame(['fonts.css', 'grid.css', 'ie.css', 'main.css', 'normalize.css'], $stylesheets);
+
+        foreach ($stylesheets as $stylesheet) {
+            foreach ($this->stylesheetUrls($stylesheet) as $url) {
+                $this->assertDoesNotMatchRegularExpression('#^(https?:)?//#', $url, "$stylesheet loads $url");
+            }
         }
     }
 
@@ -217,5 +299,30 @@ class TemplatesTest extends TestCase
         }
         ksort($views);
         return $views;
+    }
+
+
+
+
+
+
+    // -----------------------------------------------------------
+    // stylesheetUrls
+    // -----------------------------------------------------------
+    //
+    // Every address a stylesheet of public/css imports or
+    // points to, in the order it names them, leaving out the
+    // pictures it carries inline as data: addresses.
+    //
+    // Used by:
+    //   - the tests above
+    // -----------------------------------------------------------
+
+    private function stylesheetUrls(string $stylesheet): array
+    {
+        preg_match_all('/url\(\s*["\']?([^"\')]+)["\']?\s*\)/', file_get_contents(public_path('css/' . $stylesheet)), $matches);
+        return array_values(array_filter($matches[1], function (string $url) {
+            return strpos($url, 'data:') !== 0;
+        }));
     }
 }

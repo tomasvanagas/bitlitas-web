@@ -226,7 +226,7 @@
 
                     <p class="smaller xs-mw">
                         <a target="_blank" href="https://paypal.me/spliffymap/4.20"><img height="40"
-                                                                                         src="https://spliffymap.com/library/images/paypal.png"></a>
+                                                                                         src="img/paypal.png" alt="PayPal"></a>
                     </p>
                 </div>
             </div>

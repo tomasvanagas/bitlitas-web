@@ -170,7 +170,10 @@ class FrontControllerTest extends ServerTestCase
     {
         return [
             'the stylesheet'     => ['/css/main.css', 'text/css'],
+            'the font\'s faces'  => ['/css/fonts.css', 'text/css'],
+            'the font'           => ['/fonts/open-sans/open-sans-latin.woff2', 'font/woff2'],
             'the script'         => ['/js/main.js', 'text/javascript'],
+            'jQuery'             => ['/js/lib/jquery-1.11.1.min.js', 'text/javascript'],
             'the logo'           => ['/img/logo.png', 'image/png'],
             'the background'     => ['/img/bg-default.jpg', 'image/jpeg'],
             'the tab icon'       => ['/img/favicon/icon.ico', 'image/vnd.microsoft.icon'],

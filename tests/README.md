@@ -90,9 +90,12 @@ Five files outside `tests/` belong to the suite:
 
 - **Offline.** Nothing reaches the network. The full node is a stand-in,
   steered per test: in memory (`FakeDaemon`) or on `127.0.0.1:18081`
-  (`container/fake-node.php`), where `BITLITAS_DAEMON_URL` points. The
-  page's CDN scripts, fonts and images are outside the suite; only the
-  site's own files are checked.
+  (`container/fake-node.php`), where `BITLITAS_DAEMON_URL` points. Every
+  file the page loads is the site's own and is checked, its libraries
+  (`public/js/lib`) and the Open Sans web font (`public/fonts`) included.
+  Only the one embed that cannot be copied stays outside the suite:
+  Facebook's page widget. `TemplatesTest` fails if the page loads anything
+  else from another server.
 - **Production-shaped.**
   - Apache runs with the environment `docker-compose.yml` gives
     `bitlitas-web` (`APP_DEBUG`, `APP_KEY`, `DB_*`, `BITLITAS_DAEMON_URL`),
